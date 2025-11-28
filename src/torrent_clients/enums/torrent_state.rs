@@ -21,27 +21,27 @@ pub enum TorrentState {
 }
 
 impl TorrentState {
-    pub fn as_str(&self) -> &str {
+    pub fn as_string(&self) -> String {
         match self {
-            TorrentState::Error => "error",
-            TorrentState::MissingFiles => "missingFiles",
-            TorrentState::Uploading => "uploading",
-            TorrentState::PausedUP => "pausedUP",
-            TorrentState::QueuedUP => "queuedUP",
-            TorrentState::StalledUP => "stalledUP",
-            TorrentState::CheckingUP => "checkingUP",
-            TorrentState::ForcedUP => "forcedUP",
-            TorrentState::Allocating => "allocating",
-            TorrentState::Downloading => "downloading",
-            TorrentState::MetaDL => "metaDL",
-            TorrentState::PausedDL => "pausedDL",
-            TorrentState::QueuedDL => "queuedDL",
-            TorrentState::StalledDL => "stalledDL",
-            TorrentState::CheckingDL => "checkingDL",
-            TorrentState::ForcedDL => "forcedDL",
-            TorrentState::CheckingResumeData => "checkingResumeData",
-            TorrentState::Moving => "moving",
-            TorrentState::Unknown => "unknown",
+            TorrentState::Error => String::from("error"),
+            TorrentState::MissingFiles => String::from("missingFiles"),
+            TorrentState::Uploading => String::from("uploading"),
+            TorrentState::PausedUP => String::from("pausedUP"),
+            TorrentState::QueuedUP => String::from("queuedUP"),
+            TorrentState::StalledUP => String::from("stalledUP"),
+            TorrentState::CheckingUP => String::from("checkingUP"),
+            TorrentState::ForcedUP => String::from("forcedUP"),
+            TorrentState::Allocating => String::from("allocating"),
+            TorrentState::Downloading => String::from("downloading"),
+            TorrentState::MetaDL => String::from("metaDL"),
+            TorrentState::PausedDL => String::from("pausedDL"),
+            TorrentState::QueuedDL => String::from("queuedDL"),
+            TorrentState::StalledDL => String::from("stalledDL"),
+            TorrentState::CheckingDL => String::from("checkingDL"),
+            TorrentState::ForcedDL => String::from("forcedDL"),
+            TorrentState::CheckingResumeData => String::from("checkingResumeData"),
+            TorrentState::Moving => String::from("moving"),
+            TorrentState::Unknown => String::from("unknown"),
         }
     }
 }
