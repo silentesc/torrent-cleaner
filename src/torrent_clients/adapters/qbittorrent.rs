@@ -58,13 +58,7 @@ impl Qbittorrent {
                     } else if attempt < max_retries {
                         // Not logged in anymore (e.g. qbittorrent restarted)
                         if respone.status() == StatusCode::UNAUTHORIZED || respone.status() == StatusCode::FORBIDDEN {
-                            Logger::warn(
-                                format!(
-                                    "Request to qbittorrent returned status code {}, trying to relogin",
-                                    respone.status(),
-                                )
-                                .as_str(),
-                            );
+                            Logger::warn(format!("Request to qbittorrent returned status code {}, trying to relogin", respone.status(),).as_str());
                             match self.login().await {
                                 Ok(_) => {}
                                 Err(e) => return Err(e),
@@ -158,9 +152,7 @@ impl TorrentClient for Qbittorrent {
 
         let make_request_builder = || self.client.post(endpoint.clone());
 
-        self.make_request(make_request_builder)
-            .await
-            .context("Qbittorrent logout failed")?;
+        self.make_request(make_request_builder).await.context("Qbittorrent logout failed")?;
 
         Ok(())
     }
@@ -170,15 +162,9 @@ impl TorrentClient for Qbittorrent {
 
         let make_request_builder = || self.client.get(endpoint.clone());
 
-        let response = self
-            .make_request(make_request_builder)
-            .await
-            .context("Qbittorrent get torrents failed")?;
+        let response = self.make_request(make_request_builder).await.context("Qbittorrent get torrents failed")?;
         let torrent_infos: Vec<TorrentInfo> = response.json().await.context("Parsing torrents failed")?;
-        let torrents: Vec<Torrent<Qbittorrent>> = torrent_infos
-            .into_iter()
-            .map(|info| Torrent::new(info, self.clone()))
-            .collect();
+        let torrents: Vec<Torrent<Qbittorrent>> = torrent_infos.into_iter().map(|info| Torrent::new(info, self.clone())).collect();
 
         Ok(torrents)
     }
@@ -192,10 +178,7 @@ impl TorrentClient for Qbittorrent {
 
         let make_request_builder = || self.client.get(endpoint.clone()).query(&params);
 
-        let response = self
-            .make_request(make_request_builder)
-            .await
-            .context("Qbittorrent get trackers failed")?;
+        let response = self.make_request(make_request_builder).await.context("Qbittorrent get trackers failed")?;
         let trackers: Vec<Tracker> = response.json().await.context("Qbittorrent Parsing trackers failed")?;
 
         Ok(trackers)
@@ -210,9 +193,7 @@ impl TorrentClient for Qbittorrent {
 
         let make_request_builder = || self.client.post(endpoint.clone()).form(&params);
 
-        self.make_request(make_request_builder)
-            .await
-            .context("Qbittorrent stop torrent failed")?;
+        self.make_request(make_request_builder).await.context("Qbittorrent stop torrent failed")?;
 
         Ok(())
     }
