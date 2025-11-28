@@ -17,7 +17,7 @@ impl Logger {
         let current_log_level = LOG_LEVEL.load(Ordering::Relaxed);
         if log_level.as_int() >= current_log_level {
             let date = Local::now();
-            println!("[{}] [{}] {}", date.format("%Y-%m-%d %H:%M:%S"), log_level.as_string(), message);
+            println!("[{}] [{}] {}", date.format("%Y-%m-%d %H:%M:%S.%3f"), log_level.as_string(), message);
         }
     }
 
