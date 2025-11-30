@@ -115,7 +115,7 @@ impl TorrentClient for Qbittorrent {
         let delay = Duration::from_secs(60);
 
         for attempt in 1..=max_retries {
-            match self.client.post(endpoint.clone()).form(&params).send().await {
+            match self.client.post(endpoint.clone()).form(&(params.clone())).send().await {
                 Ok(response) => match response.headers().get("set-cookie") {
                     Some(_) => {
                         Logger::info("Logged into qbittorrent");
