@@ -114,7 +114,7 @@ impl TorrentClient for Qbittorrent {
         let max_retries = 6;
         let delay = Duration::from_secs(60);
 
-        for attempt in 0..=max_retries {
+        for attempt in 1..=max_retries {
             match self.client.post(endpoint.clone()).form(&params).send().await {
                 Ok(response) => match response.headers().get("set-cookie") {
                     Some(_) => {
@@ -127,9 +127,9 @@ impl TorrentClient for Qbittorrent {
                     Logger::warn(
                         format!(
                             "Failed to login to qbittorrent on try {}/{}, waiting for {} seconds",
-                            attempt + 1,
+                            attempt,
                             max_retries,
-                            delay.as_secs()
+                            delay.as_secs(),
                         )
                         .as_str(),
                     );
@@ -137,7 +137,12 @@ impl TorrentClient for Qbittorrent {
                     continue;
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!("Login request to qbittorrent failed: {:?}", e));
+                    return Err(anyhow::anyhow!(
+                        "Failed to login to qbittorrent on try {}/{}: {:?}",
+                        attempt,
+                        max_retries,
+                        e
+                    ));
                 }
             }
         }
