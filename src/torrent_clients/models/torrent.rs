@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::torrent_clients::{models::tracker::Tracker, traits::torrent_client::TorrentClient};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct TorrentInfo {
     pub hash: String,
     pub name: String,
@@ -28,6 +28,10 @@ pub struct Torrent<C: TorrentClient> {
 impl<C: TorrentClient> Torrent<C> {
     pub fn new(info: TorrentInfo, torrent_client: Arc<C>) -> Self {
         Torrent { info, torrent_client }
+    }
+
+    pub fn get_info(&self) -> TorrentInfo {
+        return self.info.clone();
     }
 
     pub async fn get_trackers(&self) -> Result<Vec<Tracker>, anyhow::Error> {
