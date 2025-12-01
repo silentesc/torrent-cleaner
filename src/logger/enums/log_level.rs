@@ -7,6 +7,17 @@ pub enum LogLevel {
 }
 
 impl LogLevel {
+    pub fn from_string(log_level: &str) -> Self {
+        match log_level {
+            "TRACE" => LogLevel::Trace,
+            "DEBUG" => LogLevel::Debug,
+            "INFO" => LogLevel::Info,
+            "WARN" => LogLevel::Warn,
+            "ERROR" => LogLevel::Error,
+            _ => LogLevel::Info,
+        }
+    }
+
     pub fn as_int(&self) -> i32 {
         match self {
             LogLevel::Trace => 0,
@@ -24,6 +35,23 @@ impl LogLevel {
             LogLevel::Info => String::from("INFO"),
             LogLevel::Warn => String::from("WARN"),
             LogLevel::Error => String::from("ERROR"),
+        }
+    }
+
+    pub fn as_colored_string(&self) -> String {
+        const RESET: &str = "\x1b[0m";
+        const RED: &str = "\x1b[31m";
+        const YELLOW: &str = "\x1b[33m";
+        const GREEN: &str = "\x1b[32m";
+        const BLUE: &str = "\x1b[34m";
+        const GRAY: &str = "\x1b[90m";
+
+        match self {
+            LogLevel::Trace => format!("{}TRACE{}", GRAY, RESET),
+            LogLevel::Debug => format!("{}DEBUG{}", BLUE, RESET),
+            LogLevel::Info => format!("{}INFO{}", GREEN, RESET),
+            LogLevel::Warn => format!("{}WARN{}", YELLOW, RESET),
+            LogLevel::Error => format!("{}ERROR{}", RED, RESET),
         }
     }
 }
