@@ -27,10 +27,10 @@ impl StrikeUtils {
     /**
      * Create tables
      */
-    pub fn create_tables(&mut self) -> Result<(), anyhow::Error> {
+    pub fn check_create_tables(&mut self) -> Result<(), anyhow::Error> {
         self.conn
             .execute(
-                "CREATE TABLE strikes (
+                "CREATE TABLE IF NOT EXISTS strikes (
                     id INTEGER PRIMARY KEY,
                     strike_type VARCHAR(255) NOT NULL,
                     hash VARCHAR(255) NOT NULL,
