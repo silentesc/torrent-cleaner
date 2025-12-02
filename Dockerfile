@@ -14,6 +14,8 @@ RUN cargo build --release
 ##########
 FROM debian:stable-slim
 
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Default envs (can be overridden in docker-compose)
 ENV PUID=1000 \
     PGID=1000 \
