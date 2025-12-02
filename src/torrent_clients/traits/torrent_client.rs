@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::torrent_clients::models::{torrent::Torrent, tracker::Tracker};
 
-pub trait TorrentClient {
+pub trait TorrentClient: Clone {
     async fn login(&self) -> Result<(), anyhow::Error>;
     async fn logout(&self) -> Result<(), anyhow::Error>;
     async fn get_all_torrents(self: &Arc<Self>) -> Result<Vec<Torrent<Self>>, anyhow::Error> where Self: Sized;

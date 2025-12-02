@@ -10,6 +10,7 @@ use anyhow::Context;
 use reqwest::{Client, RequestBuilder, Response, StatusCode, Url};
 use tokio::time::sleep;
 
+#[derive(Clone)]
 pub struct Qbittorrent {
     client: Client,
     base_url: Url,

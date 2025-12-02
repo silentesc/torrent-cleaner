@@ -20,12 +20,13 @@ pub struct TorrentInfo {
     pub seeding_time: i64,
 }
 
-pub struct Torrent<C: TorrentClient> {
+#[derive(Clone)]
+pub struct Torrent<C: TorrentClient + Clone> {
     info: TorrentInfo,
     torrent_client: Arc<C>,
 }
 
-impl<C: TorrentClient> Torrent<C> {
+impl<C: TorrentClient + Clone> Torrent<C> {
     pub fn new(info: TorrentInfo, torrent_client: Arc<C>) -> Self {
         Torrent { info, torrent_client }
     }
