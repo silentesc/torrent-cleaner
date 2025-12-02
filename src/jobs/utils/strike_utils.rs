@@ -218,4 +218,20 @@ impl StrikeUtils {
 
         Ok(())
     }
+
+    /**
+     * Delete strikes
+     */
+    pub fn delete(&mut self, strike_type: StrikeType, hashes: Vec<String>) -> Result<(), anyhow::Error> {
+        let placeholders = std::iter::repeat("?").take(hashes.len()).collect::<Vec<&str>>().join(",");
+        let sql = format!("DELETE FROM strikes WHERE strike_type = ?1 AND hash IN ({})", placeholders);
+
+        let mut params: Vec<String> = vec![strike_type.to_string()];
+        params.extend(hashes);
+        let params: Vec<&dyn rusqlite::ToSql> = params.iter().map(|hash| hash as &dyn rusqlite::ToSql).collect();
+
+        self.conn.execute(&sql, params.as_slice()).context("Failed to delete strikes")?;
+
+        Ok(())
+    }
 }
