@@ -152,7 +152,7 @@ impl StrikeUtils {
                     // If the strike record was last striked yesterday, increase everything
                     if strike_record.last_strike_date == yesterday_local {
                         tx.execute(
-                            "UPDATE SET strikes = strikes + 1, strike_days = strike_days + 1, last_strike_date = ?1 WHERE strike_type = ?2 AND hash = ?3",
+                            "UPDATE strikes SET strikes = strikes + 1, strike_days = strike_days + 1, last_strike_date = ?1 WHERE strike_type = ?2 AND hash = ?3",
                             params![today_local, strike_type.to_string(), hash],
                         )
                         .context("Failed to insert new strike")?;
@@ -160,14 +160,14 @@ impl StrikeUtils {
                     }
                     // If the strike record was last striked today, just increase strikes
                     else if strike_record.last_strike_date == today_local {
-                        tx.execute("UPDATE SET strikes = strikes + 1 WHERE strike_type = ?1 AND hash = ?2", params![strike_type.to_string(), hash])
+                        tx.execute("UPDATE strikes SET strikes = strikes + 1 WHERE strike_type = ?1 AND hash = ?2", params![strike_type.to_string(), hash])
                             .context("Failed to insert new strike")?;
                         Logger::trace(format!("Hash {} ({}) was last striked today, strikes have been increased", hash, strike_type.to_string(),).as_str());
                     }
                     // If the strike record was not striked today or yesterday, reset it
                     else {
                         tx.execute(
-                            "UPDATE SET strikes = 1, strike_days = 1, last_strike_date = ?1 WHERE strike_type = ?2 AND hash = ?3",
+                            "UPDATE strikes SET strikes = 1, strike_days = 1, last_strike_date = ?1 WHERE strike_type = ?2 AND hash = ?3",
                             params![today_local, strike_type.to_string(), hash],
                         )
                         .context("Failed to insert new strike")?;
