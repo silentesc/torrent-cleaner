@@ -68,7 +68,7 @@ impl StrikeUtils {
                     hash VARCHAR(255) NOT NULL,
                     strikes INTEGER NOT NULL,
                     strike_days INTEGER NOT NULL,
-                    last_strike_date TEXT DEFAULT CURRENT_DATE NOT NULL,
+                    last_strike_date TEXT NOT NULL,
                     UNIQUE (strike_type, hash)
                 )",
                 (),
@@ -88,13 +88,17 @@ impl StrikeUtils {
 
         let rows = stmt
             .query_map(params![strike_type.to_string()], |row| {
+                let last_strike_date_str: String = row.get(5)?;
+                let last_strike_date = NaiveDate::parse_from_str(&last_strike_date_str, "%Y-%m-%d")
+                    .map_err(|e| rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new(e)))?;
+
                 Ok(StrikeRecord {
                     id: row.get(0)?,
                     strike_type: row.get(1)?,
                     hash: row.get(2)?,
                     strikes: row.get(3)?,
                     strike_days: row.get(4)?,
-                    last_strike_date: row.get(5)?,
+                    last_strike_date,
                 })
             })
             .context("Failed to execute get_strikes statement")?;
@@ -153,34 +157,59 @@ impl StrikeUtils {
                     if strike_record.last_strike_date == yesterday_local {
                         tx.execute(
                             "UPDATE strikes SET strikes = strikes + 1, strike_days = strike_days + 1, last_strike_date = ?1 WHERE strike_type = ?2 AND hash = ?3",
-                            params![today_local, strike_type.to_string(), hash],
+                            params![today_local.format("%Y-%m-%d").to_string(), strike_type.to_string(), hash],
                         )
                         .context("Failed to insert new strike")?;
-                        Logger::trace(format!("Hash {} ({}) was last striked yesterday, strikes and strike days have been increased", hash, strike_type.to_string(),).as_str());
+                        Logger::trace(
+                            format!(
+                                "Hash {} ({}) was last striked yesterday, strikes and strike days have been increased",
+                                hash,
+                                strike_type.to_string(),
+                            )
+                            .as_str(),
+                        );
                     }
                     // If the strike record was last striked today, just increase strikes
                     else if strike_record.last_strike_date == today_local {
-                        tx.execute("UPDATE strikes SET strikes = strikes + 1 WHERE strike_type = ?1 AND hash = ?2", params![strike_type.to_string(), hash])
-                            .context("Failed to insert new strike")?;
-                        Logger::trace(format!("Hash {} ({}) was last striked today, strikes have been increased", hash, strike_type.to_string(),).as_str());
+                        tx.execute(
+                            "UPDATE strikes SET strikes = strikes + 1 WHERE strike_type = ?1 AND hash = ?2",
+                            params![strike_type.to_string(), hash],
+                        )
+                        .context("Failed to insert new strike")?;
+                        Logger::trace(
+                            format!(
+                                "Hash {} ({}) was last striked today, strikes have been increased",
+                                hash,
+                                strike_type.to_string(),
+                            )
+                            .as_str(),
+                        );
                     }
                     // If the strike record was not striked today or yesterday, reset it
                     else {
                         tx.execute(
                             "UPDATE strikes SET strikes = 1, strike_days = 1, last_strike_date = ?1 WHERE strike_type = ?2 AND hash = ?3",
-                            params![today_local, strike_type.to_string(), hash],
+                            params![today_local.format("%Y-%m-%d").to_string(), strike_type.to_string(), hash],
                         )
                         .context("Failed to insert new strike")?;
-                        Logger::trace(format!("Hash {} ({}) was not striked today or yesterday, everything has been reset", hash, strike_type.to_string(),).as_str());
+                        Logger::trace(
+                            format!(
+                                "Hash {} ({}) was not striked today or yesterday, everything has been reset",
+                                hash,
+                                strike_type.to_string(),
+                            )
+                            .as_str(),
+                        );
                     }
                 }
                 // If the strike record of the hash doesn't exist, strike for the first time
                 None => {
                     tx.execute(
-                        "INSERT INTO strikes (strike_type, hash, strikes, strike_days) VALUES (?1, ?2, ?3, ?4)",
-                        params![strike_type.to_string(), hash, 1, 1],
+                        "INSERT INTO strikes (strike_type, hash, strikes, strike_days, last_strike_date) VALUES (?1, ?2, ?3, ?4, ?5)",
+                        params![strike_type.to_string(), hash, 1, 1, Local::now().date_naive().format("%Y-%m-%d").to_string()],
                     )
                     .context("Failed to insert new strike")?;
+                    Logger::trace(format!("Hash {} ({}) has been striked for the first time", hash, strike_type.to_string(),).as_str());
                 }
             }
         }
