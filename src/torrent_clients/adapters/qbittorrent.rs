@@ -120,15 +120,7 @@ impl Qbittorrent {
                     None => return Err(anyhow::anyhow!("Failed to authenticate to qbittorrent")),
                 },
                 Err(_) if attempt < max_retries => {
-                    Logger::warn(
-                        format!(
-                            "Failed to login to qbittorrent on try {}/{}, waiting for {} seconds",
-                            attempt,
-                            max_retries,
-                            delay.as_secs(),
-                        )
-                        .as_str(),
-                    );
+                    Logger::warn(format!("Failed to login to qbittorrent on try {}/{}, waiting for {} seconds", attempt, max_retries, delay.as_secs(),).as_str());
                     sleep(delay).await;
                     continue;
                 }

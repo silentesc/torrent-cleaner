@@ -1,5 +1,7 @@
 use crate::torrent_clients::{
-    enums::any_client::AnyClient, models::{torrent::Torrent, tracker::Tracker}, traits::torrent_client::TorrentClient
+    enums::any_client::AnyClient,
+    models::{torrent::Torrent, tracker::Tracker},
+    traits::torrent_client::TorrentClient,
 };
 
 pub struct TorrentManager {

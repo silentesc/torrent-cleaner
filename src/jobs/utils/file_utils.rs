@@ -43,9 +43,7 @@ impl FileUtils {
 
         // Handle file content_path
         if content_path.is_file() {
-            let metadata = content_path
-                .metadata()
-                .context(format!("Failed to get metadata of content_path file: {}", torrent_content_path))?;
+            let metadata = content_path.metadata().context(format!("Failed to get metadata of content_path file: {}", torrent_content_path))?;
             let inode = metadata.ino();
             return Ok(media_file_inodes.contains(&inode));
         }

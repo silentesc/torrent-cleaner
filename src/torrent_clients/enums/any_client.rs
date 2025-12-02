@@ -1,4 +1,8 @@
-use crate::torrent_clients::{adapters::qbittorrent::Qbittorrent, models::{torrent::Torrent, tracker::Tracker}, traits::torrent_client::TorrentClient};
+use crate::torrent_clients::{
+    adapters::qbittorrent::Qbittorrent,
+    models::{torrent::Torrent, tracker::Tracker},
+    traits::torrent_client::TorrentClient,
+};
 
 pub enum AnyClient {
     Qbittorrent(Qbittorrent),

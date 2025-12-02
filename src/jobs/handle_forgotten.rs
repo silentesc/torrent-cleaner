@@ -39,17 +39,12 @@ impl HandleForgotten {
     pub async fn run(&self) -> Result<(), anyhow::Error> {
         Logger::info("[handle_forgotten] Job started");
 
-        let discord_webhook_url =
-            Url::parse(self.config.notification().discord_webhook_url()).context("[handle_forgotten]  Failed to parse discord_webhook_url")?;
+        let discord_webhook_url = Url::parse(self.config.notification().discord_webhook_url()).context("[handle_forgotten]  Failed to parse discord_webhook_url")?;
         let discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
 
         // Get torrents from torrent client
         Logger::debug("[handle_forgotten] Getting torrents...");
-        let torrents = self
-            .torrent_manager
-            .get_all_torrents()
-            .await
-            .context("[handle_forgotten] Failed to get all torrents")?;
+        let torrents = self.torrent_manager.get_all_torrents().await.context("[handle_forgotten] Failed to get all torrents")?;
         Logger::debug(format!("[handle_forgotten] Received {} torrents", torrents.len()).as_str());
 
         // Get inodes present in the media folder
@@ -61,10 +56,7 @@ impl HandleForgotten {
         Logger::debug("[handle_forgotten] Checking torrents for criteria...");
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
         for torrent in torrents.clone() {
-            torrents_criteria.insert(
-                torrent.hash().to_string(),
-                (torrent.clone(), self.is_criteria_met(torrent.clone(), &media_file_inodes)),
-            );
+            torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), self.is_criteria_met(torrent.clone(), &media_file_inodes)));
         }
         Logger::debug("[handle_forgotten] Done checking torrents for criteria");
 
@@ -115,17 +107,12 @@ impl HandleForgotten {
             .context("[handle_forgotten] Failed to strike hashes")?;
 
         // Get all strike stuff from the db for this job
-        let strike_records = strike_utils
-            .get_strikes(StrikeType::HandleForgotten)
-            .context("[handle_forgotten] Failed get strikes")?;
+        let strike_records = strike_utils.get_strikes(StrikeType::HandleForgotten).context("[handle_forgotten] Failed get strikes")?;
 
         // Get hashes that reached the strike limits
         let mut limit_reached_torrents: Vec<Torrent> = Vec::new();
         for strike_record in strike_records {
-            if strike_record.is_limit_reached(
-                self.config.jobs().handle_forgotten().required_strikes(),
-                self.config.jobs().handle_forgotten().min_strike_days(),
-            ) {
+            if strike_record.is_limit_reached(self.config.jobs().handle_forgotten().required_strikes(), self.config.jobs().handle_forgotten().min_strike_days()) {
                 if let Some(torrent_criteria) = torrents_criteria.get(strike_record.hash()) {
                     limit_reached_torrents.push(torrent_criteria.clone().0);
                 } else {
@@ -146,10 +133,7 @@ impl HandleForgotten {
             }
             ActionType::Stop => {
                 Logger::info("[handle_forgotten] Action: Stopping torrent");
-                self.torrent_manager
-                    .stop_torrent(torrent.hash())
-                    .await
-                    .context("[handle_forgotten] Failed to stop torrent")?;
+                self.torrent_manager.stop_torrent(torrent.hash()).await.context("[handle_forgotten] Failed to stop torrent")?;
             }
             ActionType::Delete => {
                 let mut is_any_not_meeting_criteria = false;
@@ -167,10 +151,7 @@ impl HandleForgotten {
                         .context("[handle_forgotten] Failed to delete torrent")?;
                 } else {
                     Logger::info("[handle_forgotten] Action: Deleting torrent and files");
-                    self.torrent_manager
-                        .delete_torrent(torrent.hash(), true)
-                        .await
-                        .context("[handle_forgotten] Failed to delete torrent")?;
+                    self.torrent_manager.delete_torrent(torrent.hash(), true).await.context("[handle_forgotten] Failed to delete torrent")?;
                 }
             }
         }
@@ -245,9 +226,7 @@ impl HandleForgotten {
                 inline: true,
             },
         ];
-        discord_webhook_utils
-            .send_webhook_embed(torrent_info.name(), "Found forgotten torrent", fields)
-            .await
+        discord_webhook_utils.send_webhook_embed(torrent_info.name(), "Found forgotten torrent", fields).await
     }
 
     /**
@@ -256,26 +235,12 @@ impl HandleForgotten {
     fn is_criteria_met(&self, torrent_info: Torrent, media_file_inodes: &Vec<u64>) -> bool {
         // Uncompleted
         if *torrent_info.completion_on() == -1 {
-            Logger::trace(
-                format!(
-                    "[handle_forgotten] Torrent doesn't meet criteria (uncompleted): ({}) {}",
-                    torrent_info.hash(),
-                    torrent_info.name(),
-                )
-                .as_str(),
-            );
+            Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent_info.hash(), torrent_info.name(),).as_str());
             return false;
         }
         // Protection tag
         if torrent_info.tags().contains(self.config.jobs().handle_forgotten().protection_tag()) {
-            Logger::trace(
-                format!(
-                    "[handle_forgotten] Torrent doesn't meet criteria (protection tag): ({}) {}",
-                    torrent_info.hash(),
-                    torrent_info.name(),
-                )
-                .as_str(),
-            );
+            Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (protection tag): ({}) {}", torrent_info.hash(), torrent_info.name(),).as_str());
             return false;
         }
         // Seed time
