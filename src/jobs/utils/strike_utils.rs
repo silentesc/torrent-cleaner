@@ -104,7 +104,7 @@ impl StrikeUtils {
             match row {
                 Ok(strike_record) => strike_records.push(strike_record),
                 Err(e) => {
-                    Logger::error(format!("Failed to get strike record: {}", e).as_str());
+                    Logger::error(format!("Failed to get strike record: {:#}", e).as_str());
                     continue;
                 }
             }

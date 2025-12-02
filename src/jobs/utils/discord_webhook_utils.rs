@@ -48,7 +48,7 @@ impl DiscordWebhookUtils {
                     }
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!("Sending discord notification failed: {}", e));
+                    return Err(anyhow::anyhow!("Sending discord notification failed: {:#}", e));
                 }
             }
         }

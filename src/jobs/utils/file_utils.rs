@@ -14,7 +14,7 @@ impl FileUtils {
             let entry_result = match entry {
                 Ok(entry_result) => entry_result,
                 Err(e) => {
-                    Logger::error(format!("Failed to get entry_result: {}", e).as_str());
+                    Logger::error(format!("Failed to get entry_result: {:#}", e).as_str());
                     continue;
                 }
             };
@@ -23,7 +23,7 @@ impl FileUtils {
                 let metadata = match entry_result.metadata() {
                     Ok(metadata) => metadata,
                     Err(e) => {
-                        Logger::error(format!("Failed to get file metadata: {}", e).as_str());
+                        Logger::error(format!("Failed to get file metadata: {:#}", e).as_str());
                         continue;
                     }
                 };
@@ -34,23 +34,24 @@ impl FileUtils {
         media_inodes
     }
 
-    pub fn is_torrent_in_media_library(data_folder_path: &str, torrent_content_path: &str, media_file_inodes: &Vec<u64>) -> Result<bool, anyhow::Error> {
-        let content_path_str = format!("{}{}", data_folder_path, torrent_content_path);
-        let content_path = Path::new(content_path_str.as_str());
+    pub fn is_torrent_in_media_library(torrent_content_path: &str, media_file_inodes: &Vec<u64>) -> Result<bool, anyhow::Error> {
+        let content_path = Path::new(torrent_content_path);
 
         if !content_path.exists() {
-            return Err(anyhow::anyhow!("content_path does not exist: {}", content_path_str));
+            return Err(anyhow::anyhow!("content_path does not exist: {}", torrent_content_path));
         }
 
         // Handle file content_path
         if content_path.is_file() {
-            let metadata = content_path.metadata().context(format!("Failed to get metadata of content_path file: {}", content_path_str))?;
+            let metadata = content_path
+                .metadata()
+                .context(format!("Failed to get metadata of content_path file: {}", torrent_content_path))?;
             let inode = metadata.ino();
             return Ok(media_file_inodes.contains(&inode));
         }
         // Handle dir content_path
         else if content_path.is_dir() {
-            for entry in WalkDir::new(content_path_str.clone()) {
+            for entry in WalkDir::new(torrent_content_path) {
                 let entry_result = entry.context("Failed to get entry result")?;
                 let path = entry_result.path();
                 if path.is_file() {
@@ -64,7 +65,7 @@ impl FileUtils {
         }
         // Handle edge case not file or dir (should not happen)
         else {
-            return Err(anyhow::anyhow!("content_path is neither file or dir: {}", content_path_str));
+            return Err(anyhow::anyhow!("content_path is neither file or dir: {}", torrent_content_path));
         }
 
         Ok(false)
