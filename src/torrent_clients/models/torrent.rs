@@ -1,64 +1,101 @@
-use std::sync::Arc;
-
 use serde::Deserialize;
 
-use crate::torrent_clients::{models::tracker::Tracker, traits::torrent_client::TorrentClient};
-
 #[derive(Deserialize, Clone)]
-pub struct TorrentInfo {
-    pub hash: String,
-    pub name: String,
-    pub total_size: i64,
-    pub content_path: String,
-    pub ratio: f32,
-    pub state: String,
-    pub tracker: String,
-    pub category: String,
-    pub tags: String,
-    pub added_on: i64,
-    pub completion_on: i64,
-    pub seeding_time: i64,
+pub struct Torrent {
+    hash: String,
+    name: String,
+    total_size: i64,
+    content_path: String,
+    ratio: f32,
+    state: String,
+    tracker: String,
+    category: String,
+    tags: String,
+    added_on: i64,
+    completion_on: i64,
+    seeding_time: i64,
 }
 
-#[derive(Clone)]
-pub struct Torrent<C: TorrentClient + Clone> {
-    info: TorrentInfo,
-    torrent_client: Arc<C>,
-}
-
-impl<C: TorrentClient + Clone> Torrent<C> {
-    pub fn new(info: TorrentInfo, torrent_client: Arc<C>) -> Self {
-        Torrent { info, torrent_client }
+impl Torrent {
+    pub fn new(
+        hash: String,
+        name: String,
+        total_size: i64,
+        content_path: String,
+        ratio: f32,
+        state: String,
+        tracker: String,
+        category: String,
+        tags: String,
+        added_on: i64,
+        completion_on: i64,
+        seeding_time: i64,
+    ) -> Self {
+        Torrent {
+            hash,
+            name,
+            total_size,
+            content_path,
+            ratio,
+            state,
+            tracker,
+            category,
+            tags,
+            added_on,
+            completion_on,
+            seeding_time,
+        }
     }
 
-    pub fn get_info(&self) -> TorrentInfo {
-        return self.info.clone();
+    pub fn hash(&self) -> &str {
+        &self.hash
     }
-
-    pub async fn get_trackers(&self) -> Result<Vec<Tracker>, anyhow::Error> {
-        self.torrent_client.get_torrent_trackers(&self.info.hash).await
+    pub fn name(&self) -> &str {
+        &self.name
     }
-
-    pub async fn stop(&self) -> Result<(), anyhow::Error> {
-        self.torrent_client.stop_torrent(&self.info.hash).await
+    pub fn total_size(&self) -> &i64 {
+        &self.total_size
     }
-
-    pub async fn delete(&self, delete_files: bool) -> Result<(), anyhow::Error> {
-        self.torrent_client.delete_torrent(&self.info.hash, delete_files).await
+    pub fn content_path(&self) -> &str {
+        &self.content_path
+    }
+    pub fn ratio(&self) -> &f32 {
+        &self.ratio
+    }
+    pub fn state(&self) -> &str {
+        &self.state
+    }
+    pub fn tracker(&self) -> &str {
+        &self.tracker
+    }
+    pub fn category(&self) -> &str {
+        &self.category
+    }
+    pub fn tags(&self) -> &str {
+        &self.tags
+    }
+    pub fn added_on(&self) -> &i64 {
+        &self.added_on
+    }
+    pub fn completion_on(&self) -> &i64 {
+        &self.completion_on
+    }
+    pub fn seeding_time(&self) -> &i64 {
+        &self.seeding_time
     }
 
     pub fn println(&self) {
-        println!("Torrent {}", self.info.hash);
-        println!("  name:          {}", self.info.name);
-        println!("  total_size:    {}", self.info.total_size);
-        println!("  content_path:  {}", self.info.content_path);
-        println!("  ratio:         {}", self.info.ratio);
-        println!("  state:         {}", self.info.state);
-        println!("  tracker:       {}", self.info.tracker);
-        println!("  category:      {}", self.info.category);
-        println!("  tags:          {}", self.info.tags);
-        println!("  added_on:      {}", self.info.added_on);
-        println!("  completion_on: {}", self.info.completion_on);
-        println!("  seeding_time:  {}", self.info.seeding_time);
+        println!("Torrent {}", self.hash);
+        println!("  name:          {}", self.name);
+        println!("  total_size:    {}", self.total_size);
+        println!("  content_path:  {}", self.content_path);
+        println!("  ratio:         {}", self.ratio);
+        println!("  state:         {}", self.state);
+        println!("  tracker:       {}", self.tracker);
+        println!("  category:      {}", self.category);
+        println!("  tags:          {}", self.tags);
+        println!("  added_on:      {}", self.added_on);
+        println!("  completion_on: {}", self.completion_on);
+        println!("  seeding_time:  {}", self.seeding_time);
     }
 }
