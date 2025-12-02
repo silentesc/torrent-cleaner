@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Notification {
     discord_webhook_url: String,
 }
@@ -11,7 +11,7 @@ impl Notification {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct TorrentClient {
     client: String,
     base_url: String,
@@ -34,7 +34,7 @@ impl TorrentClient {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct HandleForgotten {
     interval_hours: i32,
     min_seeding_days: i32,
@@ -65,7 +65,7 @@ impl HandleForgotten {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct HandleNotWorking {
     interval_hours: i32,
     min_strike_days: i32,
@@ -92,7 +92,7 @@ impl HandleNotWorking {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct HandleOrphaned {
     interval_hours: i32,
     min_strike_days: i32,
@@ -119,7 +119,7 @@ impl HandleOrphaned {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Jobs {
     handle_forgotten: HandleForgotten,
     handle_not_working: HandleNotWorking,
@@ -138,7 +138,7 @@ impl Jobs {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
     notification: Notification,
     torrent_client: TorrentClient,
