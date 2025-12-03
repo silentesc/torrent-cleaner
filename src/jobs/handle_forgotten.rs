@@ -39,7 +39,10 @@ impl HandleForgotten {
     pub async fn run(&self) -> Result<(), anyhow::Error> {
         Logger::info("[handle_forgotten] Job started");
 
-        let discord_webhook_url = Url::parse(self.config.notification().discord_webhook_url()).context("[handle_forgotten]  Failed to parse discord_webhook_url")?;
+        let discord_webhook_url: Option<Url> = match self.config.notification().discord_webhook_url().len() > 1 {
+            true => Some(Url::parse(self.config.notification().discord_webhook_url()).context("[handle_forgotten] Failed to parse discord_webhook_url")?),
+            false => None,
+        };
         let discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
 
         // Get torrents from torrent client
@@ -162,6 +165,10 @@ impl HandleForgotten {
      * Send notification
      */
     async fn send_notification(&self, discord_webhook_utils: &DiscordWebhookUtils, torrent_info: Torrent) -> Result<(), anyhow::Error> {
+        if !discord_webhook_utils.is_notifications_enabled() {
+            return Ok(());
+        }
+
         let total_size_gib = format!("{:.2}", (*torrent_info.total_size() as f32) / 1024.0 / 1024.0 / 1024.0);
         let total_size_gb = format!("{:.2}", (*torrent_info.total_size() as f32) / 1000.0 / 1000.0 / 1000.0);
 

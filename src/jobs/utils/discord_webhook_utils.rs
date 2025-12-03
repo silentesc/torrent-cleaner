@@ -13,42 +13,48 @@ pub struct EmbedField {
 }
 
 pub struct DiscordWebhookUtils {
-    discord_webhook_url: Url,
+    discord_webhook_url: Option<Url>,
     client: Client,
 }
 
 impl DiscordWebhookUtils {
-    pub fn new(discord_webhook_url: Url) -> Self {
+    pub fn new(discord_webhook_url: Option<Url>) -> Self {
         Self {
             discord_webhook_url,
             client: Client::new(),
         }
     }
 
+    pub fn is_notifications_enabled(&self) -> bool {
+        return self.discord_webhook_url.is_some()
+    }
+
     async fn make_request(&self, payload: &Value) -> Result<(), anyhow::Error> {
-        loop {
-            match self.client.post(self.discord_webhook_url.clone()).json(payload).send().await {
-                Ok(response) => {
-                    if response.status() == 429 {
-                        let retry_after_seconds = match response.headers().get("retry_after") {
-                            Some(header_value) => header_value.to_str().unwrap_or("1").parse().unwrap_or(1.0),
-                            None => 1.0,
-                        };
-                        if retry_after_seconds > 0.0 {
-                            sleep(Duration::from_secs_f64(retry_after_seconds)).await;
+        if let Some(discord_webhook_url) = &self.discord_webhook_url {
+            loop {
+                match self.client.post(discord_webhook_url.clone()).json(payload).send().await {
+                    Ok(response) => {
+                        if response.status() == 429 {
+                            let retry_after_seconds = match response.headers().get("retry_after") {
+                                Some(header_value) => header_value.to_str().unwrap_or("1").parse().unwrap_or(1.0),
+                                None => 1.0,
+                            };
+                            if retry_after_seconds > 0.0 {
+                                sleep(Duration::from_secs_f64(retry_after_seconds)).await;
+                            }
+                        } else if response.status().is_success() {
+                            break;
+                        } else {
+                            return Err(anyhow::anyhow!(
+                                "Sending discord notification failed with status code {}: {}",
+                                response.status(),
+                                response.text().await.unwrap_or_default(),
+                            ));
                         }
-                    } else if response.status().is_success() {
-                        break;
-                    } else {
-                        return Err(anyhow::anyhow!(
-                            "Sending discord notification failed with status code {}: {}",
-                            response.status(),
-                            response.text().await.unwrap_or_default(),
-                        ));
                     }
-                }
-                Err(e) => {
-                    return Err(anyhow::anyhow!("Sending discord notification failed: {:#}", e));
+                    Err(e) => {
+                        return Err(anyhow::anyhow!("Sending discord notification failed: {:#}", e));
+                    }
                 }
             }
         }
