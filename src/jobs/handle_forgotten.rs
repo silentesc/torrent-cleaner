@@ -67,7 +67,7 @@ impl HandleForgotten {
         Logger::debug("[handle_forgotten] Striking torrents...");
         let mut strike_utils = StrikeUtils::new()?;
         let limit_reached_torrents = self.strike_torrents(&mut strike_utils, &torrents_criteria)?;
-        Logger::debug(format!("[handle_forgotten] Done striking, {} torrents are forgotten", limit_reached_torrents.len()).as_str());
+        Logger::debug(format!("[handle_forgotten] Done striking, {} torrents reached their limit. Action will be taken now", limit_reached_torrents.len()).as_str());
 
         // Go through torrents
         for torrent in limit_reached_torrents.clone() {
