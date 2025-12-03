@@ -164,23 +164,23 @@ impl HandleForgotten {
     /**
      * Send notification
      */
-    async fn send_notification(&self, discord_webhook_utils: &DiscordWebhookUtils, torrent_info: Torrent) -> Result<(), anyhow::Error> {
+    async fn send_notification(&self, discord_webhook_utils: &DiscordWebhookUtils, torrent: Torrent) -> Result<(), anyhow::Error> {
         if !discord_webhook_utils.is_notifications_enabled() {
             return Ok(());
         }
 
-        let total_size_gib = format!("{:.2}", (*torrent_info.total_size() as f32) / 1024.0 / 1024.0 / 1024.0);
-        let total_size_gb = format!("{:.2}", (*torrent_info.total_size() as f32) / 1000.0 / 1000.0 / 1000.0);
+        let total_size_gib = format!("{:.2}", (*torrent.total_size() as f32) / 1024.0 / 1024.0 / 1024.0);
+        let total_size_gb = format!("{:.2}", (*torrent.total_size() as f32) / 1000.0 / 1000.0 / 1000.0);
 
-        let seeding_days = format!("{:.2}", (*torrent_info.seeding_time() as f32) / 60.0 / 60.0 / 24.0);
+        let seeding_days = format!("{:.2}", (*torrent.seeding_time() as f32) / 60.0 / 60.0 / 24.0);
 
-        let added_on_str = match Local.timestamp_opt(*torrent_info.added_on(), 0).single() {
+        let added_on_str = match Local.timestamp_opt(*torrent.added_on(), 0).single() {
             Some(datetime_local) => datetime_local.format("%Y-%m-%d %H:%M:%S").to_string(),
             None => String::from("Failed getting datetime"),
         };
-        let completed_on_str = match *torrent_info.completion_on() {
+        let completed_on_str = match *torrent.completion_on() {
             -1 => String::from("Not completed"),
-            _ => match Local.timestamp_opt(*torrent_info.completion_on(), 0).single() {
+            _ => match Local.timestamp_opt(*torrent.completion_on(), 0).single() {
                 Some(datetime_local) => datetime_local.format("%Y-%m-%d %H:%M:%S").to_string(),
                 None => String::from("Failed getting datetime"),
             },
@@ -189,7 +189,7 @@ impl HandleForgotten {
         let fields = vec![
             EmbedField {
                 name: String::from("Tracker"),
-                value: torrent_info.tracker().to_string(),
+                value: torrent.tracker().to_string(),
                 inline: false,
             },
             EmbedField {
@@ -199,12 +199,12 @@ impl HandleForgotten {
             },
             EmbedField {
                 name: String::from("Category"),
-                value: torrent_info.category().to_string(),
+                value: torrent.category().to_string(),
                 inline: true,
             },
             EmbedField {
                 name: String::from("Tags"),
-                value: torrent_info.tags().to_string(),
+                value: torrent.tags().to_string(),
                 inline: true,
             },
             EmbedField {
@@ -214,7 +214,7 @@ impl HandleForgotten {
             },
             EmbedField {
                 name: String::from("Ratio"),
-                value: format!("{:.2}", torrent_info.ratio()),
+                value: format!("{:.2}", torrent.ratio()),
                 inline: true,
             },
             EmbedField {
@@ -233,47 +233,47 @@ impl HandleForgotten {
                 inline: true,
             },
         ];
-        discord_webhook_utils.send_webhook_embed(torrent_info.name(), "Found forgotten torrent", fields).await
+        discord_webhook_utils.send_webhook_embed(torrent.name(), "Found forgotten torrent", fields).await
     }
 
     /**
      * Is criteria met
      */
-    fn is_criteria_met(&self, torrent_info: Torrent, media_file_inodes: &Vec<u64>) -> bool {
+    fn is_criteria_met(&self, torrent: Torrent, media_file_inodes: &Vec<u64>) -> bool {
         // Uncompleted
-        if *torrent_info.completion_on() == -1 {
-            Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent_info.hash(), torrent_info.name(),).as_str());
+        if *torrent.completion_on() == -1 {
+            Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),).as_str());
             return false;
         }
         // Protection tag
-        if torrent_info.tags().contains(self.config.jobs().handle_forgotten().protection_tag()) {
-            Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (protection tag): ({}) {}", torrent_info.hash(), torrent_info.name(),).as_str());
+        if torrent.tags().contains(self.config.jobs().handle_forgotten().protection_tag()) {
+            Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (protection tag): ({}) {}", torrent.hash(), torrent.name(),).as_str());
             return false;
         }
         // Seed time
-        let seeding_days = (torrent_info.seeding_time() / 60 / 60 / 24) as i32;
+        let seeding_days = (torrent.seeding_time() / 60 / 60 / 24) as i32;
         if seeding_days < self.config.jobs().handle_forgotten().min_seeding_days() {
             Logger::trace(
                 format!(
                     "[handle_forgotten] Torrent doesn't meet criteria (minimum seed day limit {}/{}): ({}) {}",
                     seeding_days,
                     self.config.jobs().handle_forgotten().min_seeding_days(),
-                    torrent_info.hash(),
-                    torrent_info.name(),
+                    torrent.hash(),
+                    torrent.name(),
                 )
                 .as_str(),
             );
             return false;
         }
         // Media library
-        match FileUtils::is_torrent_in_media_library(&torrent_info.content_path(), media_file_inodes) {
+        match FileUtils::is_torrent_in_media_library(&torrent.content_path(), media_file_inodes) {
             Ok(is_torrent_in_media_library) => {
                 if is_torrent_in_media_library {
                     Logger::trace(
                         format!(
                             "[handle_forgotten] Torrent doesn't meet criteria (has hardlink in media library): ({}) {}",
-                            torrent_info.hash(),
-                            torrent_info.name(),
+                            torrent.hash(),
+                            torrent.name(),
                         )
                         .as_str(),
                     );
@@ -284,8 +284,8 @@ impl HandleForgotten {
                 Logger::error(
                     format!(
                         "[handle_forgotten] Torrent doesn't meet criteria (error while checking if hardlink in media library): ({}) {}: {:#}",
-                        torrent_info.hash(),
-                        torrent_info.name(),
+                        torrent.hash(),
+                        torrent.name(),
                         e,
                     )
                     .as_str(),
@@ -293,7 +293,7 @@ impl HandleForgotten {
                 return false;
             }
         }
-        Logger::trace(format!("[handle_forgotten] Torrent meets criteria: ({}) {}", torrent_info.hash(), torrent_info.name()).as_str());
+        Logger::trace(format!("[handle_forgotten] Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
         true
     }
 }
