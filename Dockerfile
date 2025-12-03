@@ -36,4 +36,4 @@ RUN mkdir -p /config \
 # Switch to non-root user
 USER appuser
 
-CMD ["./torrent-cleaner"]
+ENTRYPOINT ["./torrent-cleaner"]
