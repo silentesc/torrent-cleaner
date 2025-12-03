@@ -12,7 +12,7 @@ pub struct Tracker {
 impl Tracker {
     pub fn println(&self) {
         let status_str = match TrackerStatus::from_int(self.status) {
-            Ok(tracker_status) => tracker_status.as_str().to_string(),
+            Ok(tracker_status) => tracker_status.to_string(),
             Err(error_msg) => error_msg.to_string(),
         };
         println!("Tracker {}", self.url);
