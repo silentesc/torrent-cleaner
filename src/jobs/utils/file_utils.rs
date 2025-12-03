@@ -3,34 +3,20 @@ use std::{os::unix::fs::MetadataExt, path::Path};
 use anyhow::Context;
 use walkdir::WalkDir;
 
-use crate::logger::logger::Logger;
-
 pub struct FileUtils {}
 
 impl FileUtils {
-    pub fn get_media_file_inodes(media_folder_path: &str) -> Vec<u64> {
+    pub fn get_media_file_inodes(media_folder_path: &str) -> Result<Vec<u64>, anyhow::Error> {
         let mut media_inodes: Vec<u64> = Vec::new();
         for entry in WalkDir::new(media_folder_path) {
-            let entry_result = match entry {
-                Ok(entry_result) => entry_result,
-                Err(e) => {
-                    Logger::error(format!("Failed to get entry_result: {:#}", e).as_str());
-                    continue;
-                }
-            };
+            let entry_result = entry.context("Failed to get entry_result")?;
             if entry_result.file_type().is_file() {
-                let metadata = match entry_result.metadata() {
-                    Ok(metadata) => metadata,
-                    Err(e) => {
-                        Logger::error(format!("Failed to get file metadata: {:#}", e).as_str());
-                        continue;
-                    }
-                };
+                let metadata = entry_result.metadata().context("Failed to get file metadata")?;
                 let inode = metadata.ino();
                 media_inodes.push(inode);
             }
         }
-        media_inodes
+        Ok(media_inodes)
     }
 
     pub fn is_torrent_in_media_library(torrent_content_path: &str, media_file_inodes: &Vec<u64>) -> Result<bool, anyhow::Error> {

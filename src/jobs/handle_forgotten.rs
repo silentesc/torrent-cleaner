@@ -50,7 +50,7 @@ impl HandleForgotten {
 
         // Get inodes present in the media folder
         Logger::debug("[handle_forgotten] Getting inodes of media files...");
-        let media_file_inodes = FileUtils::get_media_file_inodes(&self.media_folder_path);
+        let media_file_inodes = FileUtils::get_media_file_inodes(&self.media_folder_path)?;
         Logger::debug(format!("[handle_forgotten] Received inodes of {} files", media_file_inodes.len()).as_str());
 
         // Check torrents for criteria
