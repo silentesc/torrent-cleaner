@@ -59,7 +59,7 @@ impl HandleForgotten {
         Logger::debug("[handle_forgotten] Checking torrents for criteria...");
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
         for torrent in torrents.clone() {
-            torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), self.is_criteria_met(torrent.clone(), &media_file_inodes)));
+            torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), self.is_criteria_met(&torrent, &media_file_inodes)));
         }
         Logger::debug("[handle_forgotten] Done checking torrents for criteria");
 
@@ -75,12 +75,12 @@ impl HandleForgotten {
             Logger::info(format!("[handle_forgotten] Torrent forgotten: {}", torrent.name()).as_str());
 
             // Notification
-            self.send_notification(&discord_webhook_utils, torrent.clone())
+            self.send_notification(&discord_webhook_utils, &torrent)
                 .await
                 .context("[handle_forgotten] Failed to send notification")?;
 
             // Take action
-            self.take_action(&torrents_criteria, &torrent.clone()).await?;
+            self.take_action(&torrents_criteria, &torrent).await?;
         }
 
         // Remove torrents that reached limit and were handled from db
@@ -164,7 +164,7 @@ impl HandleForgotten {
     /**
      * Send notification
      */
-    async fn send_notification(&self, discord_webhook_utils: &DiscordWebhookUtils, torrent: Torrent) -> Result<(), anyhow::Error> {
+    async fn send_notification(&self, discord_webhook_utils: &DiscordWebhookUtils, torrent: &Torrent) -> Result<(), anyhow::Error> {
         if !discord_webhook_utils.is_notifications_enabled() {
             return Ok(());
         }
@@ -239,7 +239,7 @@ impl HandleForgotten {
     /**
      * Is criteria met
      */
-    fn is_criteria_met(&self, torrent: Torrent, media_file_inodes: &Vec<u64>) -> bool {
+    fn is_criteria_met(&self, torrent: &Torrent, media_file_inodes: &Vec<u64>) -> bool {
         // Uncompleted
         if *torrent.completion_on() == -1 {
             Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),).as_str());
