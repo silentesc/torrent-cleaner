@@ -35,8 +35,6 @@ impl HandleNotWorking {
      * Run
      */
     pub async fn run(&self) -> Result<(), anyhow::Error> {
-        Logger::info("[handle_not_working] Job started");
-
         let discord_webhook_url: Option<Url> = match self.config.notification().discord_webhook_url().len() > 1 {
             true => Some(Url::parse(self.config.notification().discord_webhook_url()).context("[handle_not_working] Failed to parse discord_webhook_url")?),
             false => None,
@@ -128,8 +126,6 @@ impl HandleNotWorking {
         // Remove torrents that reached limit and were handled from db
         let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
         strike_utils.delete(StrikeType::HandleNotWorking, limit_reached_torrent_hashes)?;
-
-        Logger::info("[handle_not_working] Job finished");
 
         Ok(())
     }
