@@ -18,8 +18,7 @@ impl FileUtils {
                     continue;
                 }
             };
-            let path = entry_result.path();
-            if path.is_file() {
+            if entry_result.file_type().is_file() {
                 let metadata = match entry_result.metadata() {
                     Ok(metadata) => metadata,
                     Err(e) => {
@@ -51,8 +50,7 @@ impl FileUtils {
         else if content_path.is_dir() {
             for entry in WalkDir::new(torrent_content_path) {
                 let entry_result = entry.context("Failed to get entry result")?;
-                let path = entry_result.path();
-                if path.is_file() {
+                if entry_result.file_type().is_file() {
                     let metadata = entry_result.metadata().context("Failed to get entry result metadata")?;
                     let inode = metadata.ino();
                     if media_file_inodes.contains(&inode) {
