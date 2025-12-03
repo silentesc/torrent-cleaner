@@ -18,13 +18,13 @@ impl TrackerStatus {
         }
     }
 
-    pub fn as_str(&self) -> String {
+    pub fn to_string(&self) -> String {
         match self {
             TrackerStatus::Disabled => String::from("Disabled"),
-            TrackerStatus::NotContacted => String::from("NotContacted"),
+            TrackerStatus::NotContacted => String::from("Not Contacted"),
             TrackerStatus::Working => String::from("Working"),
             TrackerStatus::Updating => String::from("Updating"),
-            TrackerStatus::NotWorking => String::from("NotWorking"),
+            TrackerStatus::NotWorking => String::from("Not Working"),
         }
     }
 }
