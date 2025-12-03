@@ -7,14 +7,14 @@ pub enum TrackerStatus {
 }
 
 impl TrackerStatus {
-    pub fn from_int(num: i8) -> Result<TrackerStatus, &'static str> {
+    pub fn from_int(num: i8) -> Result<TrackerStatus, String> {
         match num {
             0 => Ok(TrackerStatus::Disabled),
             1 => Ok(TrackerStatus::NotContacted),
             2 => Ok(TrackerStatus::Working),
             3 => Ok(TrackerStatus::Updating),
             4 => Ok(TrackerStatus::NotWorking),
-            _ => Err("Invalid Number"),
+            _ => Err(format!("Invalid Tracker Status Number: {}", num)),
         }
     }
 
