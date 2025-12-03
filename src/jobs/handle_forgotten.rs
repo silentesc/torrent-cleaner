@@ -112,7 +112,7 @@ impl HandleForgotten {
         // Get all strike stuff from the db for this job
         let strike_records = strike_utils.get_strikes(StrikeType::HandleForgotten).context("[handle_forgotten] Failed get strikes")?;
 
-        // Get hashes that reached the strike limits
+        // Get torrents that reached the strike limits
         let mut limit_reached_torrents: Vec<Torrent> = Vec::new();
         for strike_record in strike_records {
             if strike_record.is_limit_reached(self.config.jobs().handle_forgotten().required_strikes(), self.config.jobs().handle_forgotten().min_strike_days()) {
