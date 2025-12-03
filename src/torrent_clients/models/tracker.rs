@@ -19,4 +19,16 @@ impl Tracker {
         println!("  status:    {}", status_str);
         println!("  msg:       {}", self.msg);
     }
+
+    /* Getters */
+
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+    pub fn status(&self) -> &i8 {
+        &self.status
+    }
+    pub fn msg(&self) -> &str {
+        &self.msg
+    }
 }
