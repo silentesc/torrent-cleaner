@@ -6,7 +6,6 @@ use crate::torrent_clients::enums::tracker_status::TrackerStatus;
 pub struct Tracker {
     url: String,
     status: i8,
-    num_peers: i32,
     msg: String,
 }
 
@@ -18,7 +17,6 @@ impl Tracker {
         };
         println!("Tracker {}", self.url);
         println!("  status:    {}", status_str);
-        println!("  num_peers: {}", self.num_peers);
         println!("  msg:       {}", self.msg);
     }
 }
