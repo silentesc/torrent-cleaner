@@ -5,6 +5,8 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use tokio::time::sleep;
 
+use crate::logger::logger::Logger;
+
 #[derive(Serialize)]
 pub struct EmbedField {
     pub name: String,
@@ -26,7 +28,7 @@ impl DiscordWebhookUtils {
     }
 
     pub fn is_notifications_enabled(&self) -> bool {
-        return self.discord_webhook_url.is_some()
+        return self.discord_webhook_url.is_some();
     }
 
     async fn make_request(&self, payload: &Value) -> Result<(), anyhow::Error> {
@@ -40,6 +42,7 @@ impl DiscordWebhookUtils {
                                 None => 1.0,
                             };
                             if retry_after_seconds > 0.0 {
+                                Logger::warn(format!("Received status code 429 (too many requests) from discord, waiting {:.2} seconds", retry_after_seconds).as_str());
                                 sleep(Duration::from_secs_f64(retry_after_seconds)).await;
                             }
                         } else if response.status().is_success() {
