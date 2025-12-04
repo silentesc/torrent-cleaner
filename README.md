@@ -53,9 +53,6 @@ torrent-cleaner:
       - ./config/torrent-cleaner:/config
       - ./data:/data
     restart: unless-stopped
-    depends_on:
-      qbittorrent:
-        condition: service_started
 ```
 
 ### Config
