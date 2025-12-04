@@ -65,9 +65,9 @@ impl HandleNotWorking {
         Logger::debug("[handle_not_working] Unstrike torrents with working tracker...");
         let working_hashes: Vec<String> = torrent_trackers
             .iter()
-            .filter(|torrent_tracker| {
+            .filter(|(_, trackers)| {
                 let mut is_working = false;
-                for tracker in torrent_tracker.1 {
+                for tracker in *trackers {
                     match TrackerStatus::from_int(*tracker.status()) {
                         Ok(tracker_status) => {
                             if matches!(tracker_status, TrackerStatus::Working) {
