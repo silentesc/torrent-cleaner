@@ -83,6 +83,11 @@ impl HandleForgotten {
         let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
         strike_utils.delete(StrikeType::HandleForgotten, limit_reached_torrent_hashes)?;
 
+        // Clean db
+        Logger::debug("[handle_forgotten] Cleaning db...");
+        self.clean_db(&mut strike_utils, &torrents_criteria)?;
+        Logger::debug("[handle_forgotten] Cleaned db");
+
         Ok(())
     }
 
@@ -106,7 +111,7 @@ impl HandleForgotten {
                 if let Some(torrent_criteria) = torrents_criteria.get(strike_record.hash()) {
                     limit_reached_torrents.push(torrent_criteria.clone().0);
                 } else {
-                    Logger::warn(format!("Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str());
+                    Logger::warn(format!("[handle_forgotten] Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str());
                 }
             }
         }
@@ -142,6 +147,35 @@ impl HandleForgotten {
                 }
             }
         }
+        Ok(())
+    }
+
+    /**
+     * Clean db
+     */
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>) -> Result<(), anyhow::Error> {
+        let mut hashes_to_remove: Vec<String> = Vec::new();
+
+        let strike_records = strike_utils.get_strikes(StrikeType::HandleForgotten, None).context("[handle_forgotten] Failed to get all strikes for HandleForgotten")?;
+        for strike_record in strike_records {
+            match torrents_criteria.get(strike_record.hash()) {
+                // Check for stuff that doesn't meet criteria
+                Some((_, is_criteria_met)) => {
+                    if !*is_criteria_met {
+                        hashes_to_remove.push(strike_record.hash().to_string());
+                    }
+                }
+                // Check for stuff that doesn't exist in torrents anymore
+                None => {
+                    hashes_to_remove.push(strike_record.hash().to_string());
+                }
+            }
+        }
+
+        Logger::trace(format!("[handle_forgotten] Deleting {} hashes", hashes_to_remove.len()).as_str());
+
+        strike_utils.delete(StrikeType::HandleForgotten, hashes_to_remove).context("[handle_forgotten] Failed to delete hashes")?;
+
         Ok(())
     }
 
