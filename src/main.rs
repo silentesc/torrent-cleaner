@@ -69,6 +69,10 @@ async fn main() {
     // Setup logging
     Setup::setup_logging();
 
+    const APP_NAME: &str = env!("CARGO_PKG_NAME");
+    const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+    Logger::info(format!("Running {} {}", APP_NAME, APP_VERSION).as_str());
+
     // Load env variables
     let torrents_path = match env::var("TORRENTS_PATH") {
         Ok(torrents_path) => torrents_path,
