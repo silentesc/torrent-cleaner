@@ -29,91 +29,80 @@ impl JobManager {
     }
 
     pub fn setup(&self) {
-        let handle_forgotten = HandleForgotten::new(self.torrent_manager.clone(), self.media_path.clone(), self.config.clone());
-        let handle_not_working = HandleNotWorking::new(self.torrent_manager.clone(), self.config.clone());
-        let handle_orphaned = HandleOrphaned::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone());
+        let handle_forgotten = Arc::new(HandleForgotten::new(self.torrent_manager.clone(), self.media_path.clone(), self.config.clone()));
+        let handle_not_working = Arc::new(HandleNotWorking::new(self.torrent_manager.clone(), self.config.clone()));
+        let handle_orphaned = Arc::new(HandleOrphaned::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
 
-        // Handle Forgotten Job
-        if self.config.jobs().handle_forgotten().interval_hours() != -1 {
-            let lock_for_handle_forgotten = self.job_lock.clone();
-            let config_for_handle_forgotten = self.config.clone();
-            tokio::spawn(async move {
-                Logger::info(format!("[job_manager] Set up handle_forgotten, next run in {} hours", config_for_handle_forgotten.jobs().handle_forgotten().interval_hours()).as_str());
-                sleep(Duration::from_hours(config_for_handle_forgotten.jobs().handle_forgotten().interval_hours() as u64)).await;
-                loop {
-                    {
-                        // Wait for lock
-                        let _guard = lock_for_handle_forgotten.lock().await;
-                        // Execute job
-                        Logger::info("[job_manager] Starting handle_forgotten...");
-                        if let Err(e) = handle_forgotten.run().await {
-                            Logger::error(format!("[job_manager] Failed to run handle_forgotten: {:#}", e).as_str());
-                        }
-                        Logger::info(format!("[job_manager] handle_forgotten finished, next run in {} hours", config_for_handle_forgotten.jobs().handle_forgotten().interval_hours()).as_str());
-                    }
-                    // Sleep
-                    sleep(Duration::from_hours(config_for_handle_forgotten.jobs().handle_forgotten().interval_hours() as u64)).await;
+        self.spawn_job(
+            String::from("handle_forgotten"),
+            self.config.jobs().handle_forgotten().interval_hours(),
+            Config::default().jobs().handle_forgotten().interval_hours(),
+            handle_forgotten.clone(),
+            |handler| async move {
+                if let Err(e) = handler.run().await {
+                    Logger::error(format!("[job_manager] Failed to run handle_forgotten: {:#}", e).as_str());
                 }
-            });
-        }
-        // Handle Not Working Job
-        if self.config.jobs().handle_not_working().interval_hours() != -1 {
-            let lock_for_handle_not_working = self.job_lock.clone();
-            let config_for_handle_not_working = self.config.clone();
-            tokio::spawn(async move {
-                Logger::info(
-                    format!(
-                        "[job_manager] Set up handle_not_working, next run in {} hours",
-                        config_for_handle_not_working.jobs().handle_not_working().interval_hours()
-                    )
-                    .as_str(),
-                );
-                sleep(Duration::from_hours(config_for_handle_not_working.jobs().handle_not_working().interval_hours() as u64)).await;
-                loop {
-                    {
-                        // Wait for lock
-                        let _guard = lock_for_handle_not_working.lock().await;
-                        // Execute job
-                        Logger::info("[job_manager] Starting handle_not_working...");
-                        if let Err(e) = handle_not_working.run().await {
-                            Logger::error(format!("[job_manager] Failed to run handle_not_working: {:#}", e).as_str());
-                        }
-                        Logger::info(
-                            format!(
-                                "[job_manager] handle_not_working finished, next run in {} hours",
-                                config_for_handle_not_working.jobs().handle_not_working().interval_hours()
-                            )
-                            .as_str(),
-                        );
-                    }
-                    // Sleep
-                    sleep(Duration::from_hours(config_for_handle_not_working.jobs().handle_not_working().interval_hours() as u64)).await;
+            },
+        );
+
+        self.spawn_job(
+            String::from("handle_not_working"),
+            self.config.jobs().handle_not_working().interval_hours(),
+            Config::default().jobs().handle_not_working().interval_hours(),
+            handle_not_working.clone(),
+            |handler| async move {
+                if let Err(e) = handler.run().await {
+                    Logger::error(format!("[job_manager] Failed to run handle_not_working: {:#}", e).as_str());
                 }
-            });
-        }
-        // Handle Orphaned Job
-        if self.config.jobs().handle_orphaned().interval_hours() != -1 {
-            let lock_for_handle_orphaned = self.job_lock.clone();
-            let config_for_handle_orphaned = self.config.clone();
-            tokio::spawn(async move {
-                Logger::info(format!("[job_manager] Set up handle_orphaned, next run in {} hours", config_for_handle_orphaned.jobs().handle_orphaned().interval_hours()).as_str());
-                sleep(Duration::from_hours(config_for_handle_orphaned.jobs().handle_orphaned().interval_hours() as u64)).await;
-                loop {
-                    {
-                        // Wait for lock
-                        let _guard = lock_for_handle_orphaned.lock().await;
-                        // Execute job
-                        Logger::info("[job_manager] Starting handle_orphaned...");
-                        if let Err(e) = handle_orphaned.run().await {
-                            Logger::error(format!("[job_manager] Failed to run handle_orphaned: {:#}", e).as_str());
-                        }
-                        Logger::info(format!("[job_manager] handle_orphaned finished, next run in {} hours", config_for_handle_orphaned.jobs().handle_orphaned().interval_hours()).as_str());
-                    }
-                    // Sleep
-                    sleep(Duration::from_hours(config_for_handle_orphaned.jobs().handle_orphaned().interval_hours() as u64)).await;
+            },
+        );
+
+        self.spawn_job(
+            String::from("handle_orphaned"),
+            self.config.jobs().handle_orphaned().interval_hours(),
+            Config::default().jobs().handle_orphaned().interval_hours(),
+            handle_orphaned.clone(),
+            |handler| async move {
+                if let Err(e) = handler.run().await {
+                    Logger::error(format!("[job_manager] Failed to run handle_orphaned: {:#}", e).as_str());
                 }
-            });
+            },
+        );
+    }
+
+    fn spawn_job<T, F, Fut>(&self, job_name: String, interval_hours: i32, default_interval_hours: i32, handler: Arc<T>, job_fn: F)
+    where
+        T: Send + Sync + 'static,
+        F: (Fn(Arc<T>) -> Fut) + Send + Sync + 'static,
+        Fut: std::future::Future<Output = ()> + Send + 'static,
+    {
+        if interval_hours == -1 {
+            return;
         }
+
+        let lock = self.job_lock.clone();
+
+        tokio::spawn(async move {
+            Logger::info(format!("[job_manager] Set up {}, next run in {} hours", job_name, interval_hours).as_str());
+
+            // Test/Sleep
+            let mut interval_hours = interval_hours;
+            if interval_hours != 0 {
+                sleep(Duration::from_hours(interval_hours as u64)).await;
+            } else {
+                interval_hours = default_interval_hours;
+            }
+
+            loop {
+                {
+                    let _guard = lock.lock().await;
+                    Logger::info(format!("[job_manager] Starting {}...", job_name).as_str());
+                    job_fn(handler.clone()).await;
+                    Logger::info(format!("[job_manager] {} finished, next run in {} hours", job_name, interval_hours).as_str());
+                }
+                sleep(Duration::from_hours(interval_hours as u64)).await;
+            }
+        });
     }
 
     /* Getter */
