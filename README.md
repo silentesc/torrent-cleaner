@@ -37,7 +37,7 @@
 
 # How to install
 
-### Docker Compose
+## Docker Compose
 ```yaml
 torrent-cleaner:
     image: torrent-cleaner # Will be released on docker hub soon
@@ -55,12 +55,14 @@ torrent-cleaner:
     restart: unless-stopped
 ```
 
-### Config
+## Config
 The config will create itself on first start with recommended settings, but still needs to be configured for notifications and the torrent client
+
+### !!! Don't paste the explanation comments in your config, json doesn't like that !!!
 ```json
 {
   "notification": {
-    "discord_webhook_url": ""
+    "discord_webhook_url": "" // Leave empty to disable
   },
   "torrent_client": {
     "client": "qbittorrent",
@@ -70,25 +72,25 @@ The config will create itself on first start with recommended settings, but stil
   },
   "jobs": {
     "handle_forgotten": {
-      "interval_hours": 24,
+      "interval_hours": 24, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_seeding_days": 20,
       "min_strike_days": 3,
       "required_strikes": 3,
       "protection_tag": "protected",
-      "action": "test"
+      "action": "test" // test, stop, delete
     },
     "handle_not_working": {
-      "interval_hours": 3,
+      "interval_hours": 3, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 5,
       "required_strikes": 10,
       "protection_tag": "protected",
-      "action": "test"
+      "action": "test" // test, stop, delete
     },
     "handle_orphaned": {
-      "interval_hours": 24,
+      "interval_hours": 24, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 3,
       "required_strikes": 3,
-      "action": "test"
+      "action": "test" // test, delete
     }
   }
 }
