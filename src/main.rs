@@ -117,7 +117,7 @@ async fn main() {
     }
 
     // Setup jobs
-    let job_manager = JobManager::new(config.clone(), torrent_manager.clone(), media_path.clone());
+    let job_manager = JobManager::new(config.clone(), torrent_manager.clone(), torrents_path.clone(), media_path.clone());
     job_manager.setup();
 
     // Wait for signal
