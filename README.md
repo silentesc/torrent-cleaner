@@ -1,7 +1,25 @@
 # IN ACTIVE DEVELOPMENT
 
 # Features
-- ...
+- Striking (action only taken on x strikes over y **continuous** days)
+- Protection Tag individually for every job
+- Discord Webhook Notifications
+- Supports Cross-Seeding that
+  - uses hardlinks
+  - uses the excact same files
+- Written in Rust with a focus on performance and stability
+- Supported torrent clients:
+  - qBittorrent
+
+# Jobs
+- HandleForgotten (handle torrents that are not present in the media dir):
+  - All features from above, plus:
+    - Minimum seeding days (action only taken if torrent was **actively seeding** for x days)
+- HandleNotWorking (handle torrents that have no working trackers)
+  - All features from above, plus:
+    - If there is a working tracker, the process is reset
+- HandleOrphaned (handle files/folders that are not used by any torrent)
+  - All features from above
 
 # Prerequirements
 - Have the torrents and media library on the same filesystem (needed for hardlinking)
