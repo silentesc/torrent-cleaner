@@ -64,7 +64,6 @@ The config will create itself on first start with recommended settings, but stil
       "interval_hours": 24,
       "min_strike_days": 3,
       "required_strikes": 3,
-      "protection_tag": "protected",
       "action": "test"
     }
   }

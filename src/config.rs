@@ -97,7 +97,6 @@ pub struct HandleOrphaned {
     interval_hours: i32,
     min_strike_days: i32,
     required_strikes: i32,
-    protection_tag: String,
     action: String,
 }
 
@@ -110,9 +109,6 @@ impl HandleOrphaned {
     }
     pub fn required_strikes(&self) -> i32 {
         self.required_strikes
-    }
-    pub fn protection_tag(&self) -> &str {
-        &self.protection_tag
     }
     pub fn action(&self) -> &str {
         &self.action
@@ -177,7 +173,6 @@ impl Config {
                     interval_hours: 24,
                     min_strike_days: 3,
                     required_strikes: 3,
-                    protection_tag: String::from("protected"),
                     action: String::from("test"),
                 },
             },
