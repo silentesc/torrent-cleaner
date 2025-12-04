@@ -59,35 +59,6 @@ impl HandleNotWorking {
         }
         Logger::debug("[handle_not_working] Received torrent trackers");
 
-        let mut strike_utils = StrikeUtils::new()?;
-
-        // Unstrike torrents with working tracker
-        Logger::debug("[handle_not_working] Unstrike torrents with working tracker...");
-        let working_hashes: Vec<String> = torrent_trackers
-            .iter()
-            .filter(|(_, trackers)| {
-                let mut is_working = false;
-                for tracker in *trackers {
-                    match TrackerStatus::from_int(*tracker.status()) {
-                        Ok(tracker_status) => {
-                            if matches!(tracker_status, TrackerStatus::Working) {
-                                is_working = true;
-                                break;
-                            }
-                        }
-                        Err(e) => {
-                            Logger::warn(e.as_str());
-                            is_working = true;
-                        }
-                    };
-                }
-                is_working
-            })
-            .map(|torrent_tracker| torrent_tracker.0.to_string())
-            .collect();
-        strike_utils.delete(StrikeType::HandleNotWorking, working_hashes)?;
-        Logger::debug("[handle_not_working] Unstriked torrents with working tracker");
-
         // Check torrents for criteria
         Logger::debug("[handle_not_working] Checking torrents for criteria...");
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
@@ -102,6 +73,7 @@ impl HandleNotWorking {
 
         // Striking
         Logger::debug("[handle_not_working] Striking torrents...");
+        let mut strike_utils = StrikeUtils::new()?;
         let limit_reached_torrents = self.strike_torrents(&mut strike_utils, &torrents_criteria)?;
         Logger::debug(format!("[handle_not_working] Done striking, {} torrents reached their limit. Action will be taken now", limit_reached_torrents.len()).as_str());
 
@@ -124,6 +96,11 @@ impl HandleNotWorking {
         // Remove torrents that reached limit and were handled from db
         let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
         strike_utils.delete(StrikeType::HandleNotWorking, limit_reached_torrent_hashes)?;
+
+        // Clean db
+        Logger::debug("[handle_not_working] Cleaning db...");
+        self.clean_db(&mut strike_utils, &torrents_criteria)?;
+        Logger::debug("[handle_not_working] Cleaned db");
 
         Ok(())
     }
@@ -148,7 +125,7 @@ impl HandleNotWorking {
                 if let Some(torrent_criteria) = torrents_criteria.get(strike_record.hash()) {
                     limit_reached_torrents.push(torrent_criteria.clone().0);
                 } else {
-                    Logger::warn(format!("Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str());
+                    Logger::warn(format!("[handle_not_working] Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str());
                 }
             }
         }
@@ -184,6 +161,37 @@ impl HandleNotWorking {
                 }
             }
         }
+        Ok(())
+    }
+
+    /**
+     * Clean db
+     */
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>) -> Result<(), anyhow::Error> {
+        let mut hashes_to_remove: Vec<String> = Vec::new();
+
+        let strike_records = strike_utils
+            .get_strikes(StrikeType::HandleNotWorking, None)
+            .context("[handle_not_working] Failed to get all strikes for HandleNotWorking")?;
+        for strike_record in strike_records {
+            match torrents_criteria.get(strike_record.hash()) {
+                // Check for stuff that doesn't meet criteria
+                Some((_, is_criteria_met)) => {
+                    if !*is_criteria_met {
+                        hashes_to_remove.push(strike_record.hash().to_string());
+                    }
+                }
+                // Check for stuff that doesn't exist in torrents anymore
+                None => {
+                    hashes_to_remove.push(strike_record.hash().to_string());
+                }
+            }
+        }
+
+        Logger::trace(format!("[handle_not_working] Deleting {} hashes", hashes_to_remove.len()).as_str());
+
+        strike_utils.delete(StrikeType::HandleNotWorking, hashes_to_remove).context("[handle_not_working] Failed to delete hashes")?;
+
         Ok(())
     }
 
