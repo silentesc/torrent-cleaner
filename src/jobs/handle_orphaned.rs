@@ -1,6 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
 };
 
@@ -136,6 +137,11 @@ impl HandleOrphaned {
         // Remove paths that reached limit and were handled from db
         strike_utils.delete(StrikeType::HandleOrphaned, limit_reached_path_strings)?;
 
+        // Clean db
+        Logger::debug("[handle_orphaned] Cleaning db...");
+        self.clean_db(&mut strike_utils, &torrent_paths)?;
+        Logger::debug("[handle_orphaned] Cleaned db");
+
         Ok(())
     }
 
@@ -143,7 +149,9 @@ impl HandleOrphaned {
      * Strike paths
      */
     fn strike_paths(&self, strike_utils: &mut StrikeUtils, orphaned_path_strings: Vec<String>) -> Result<Vec<String>, anyhow::Error> {
-        strike_utils.strike(StrikeType::HandleOrphaned, orphaned_path_strings.clone()).context("[handle_orphaned] Failed to strike orhaned paths")?;
+        strike_utils
+            .strike(StrikeType::HandleOrphaned, orphaned_path_strings.clone())
+            .context("[handle_orphaned] Failed to strike orhaned paths")?;
 
         let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned, Some(orphaned_path_strings)).context("[handle_orphaned] Failed get strikes")?;
 
@@ -171,17 +179,38 @@ impl HandleOrphaned {
             ActionType::Delete => {
                 if path.is_file() {
                     if let Err(e) = fs::remove_file(path) {
-                        Logger::error(format!("Error deleting orphaned file ({}): {:#}", path.display(), e).as_str());
+                        Logger::error(format!("[handle_orphaned] Error deleting orphaned file ({}): {:#}", path.display(), e).as_str());
                     }
                 } else if path.is_dir() {
                     if let Err(e) = fs::remove_dir(path) {
-                        Logger::error(format!("Error deleting orphaned dir ({}): {:#}", path.display(), e).as_str());
+                        Logger::error(format!("[handle_orphaned] Error deleting orphaned dir ({}): {:#}", path.display(), e).as_str());
                     }
                 } else {
-                    Logger::warn(format!("Path is neither file or dir: {}", path.display()).as_str());
+                    Logger::warn(format!("[handle_orphaned] Path is neither file or dir: {}", path.display()).as_str());
                 }
             }
         }
+    }
+
+    /**
+     * Clean db
+     */
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrent_paths: &Vec<PathBuf>) -> Result<(), anyhow::Error> {
+        let mut hashes_to_remove: Vec<String> = Vec::new();
+
+        let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned, None).context("[handle_orphaned] Failed to get all strikes for HandleOrphaned")?;
+        for strike_record in strike_records {
+            let strike_record_path = PathBuf::from_str(strike_record.hash()).context("[handle_orphaned] Failed to get PathBuf from strike_record")?;
+            if torrent_paths.contains(&strike_record_path) {
+                hashes_to_remove.push(strike_record.hash().to_string());
+            }
+        }
+
+        Logger::trace(format!("[handle_orphaned] Deleting {} paths from strike db", hashes_to_remove.len()).as_str());
+
+        strike_utils.delete(StrikeType::HandleOrphaned, hashes_to_remove).context("[handle_orphaned] Failed to delete paths from strike db")?;
+
+        Ok(())
     }
 
     /**
@@ -194,7 +223,7 @@ impl HandleOrphaned {
 
         let metadata = fs::metadata(path).context("[handle_orphaned] Failed to get file metadata")?;
         let file_size_gb_string = format!("{:.2}GB", (metadata.len() / 1000 / 1000) as f32 / 1000.0);
-        let modified_time = metadata.modified().context("Failed to get file modified SystemTime")?;
+        let modified_time = metadata.modified().context("[handle_orphaned] Failed to get file modified SystemTime")?;
 
         let modified_time: DateTime<Local> = modified_time.into();
         let modified_time: String = modified_time.format("%Y-%m-%d %H:%M:%S").to_string();
