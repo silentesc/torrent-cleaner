@@ -73,9 +73,7 @@ impl HandleForgotten {
             Logger::info(format!("[handle_forgotten] Torrent forgotten: {}", torrent.name()).as_str());
 
             // Notification
-            self.send_notification(&discord_webhook_utils, &torrent)
-                .await
-                .context("[handle_forgotten] Failed to send notification")?;
+            self.send_notification(&discord_webhook_utils, &torrent).await.context("[handle_forgotten] Failed to send notification")?;
 
             // Take action
             self.take_action(&torrents_criteria, &torrent).await?;
@@ -93,20 +91,13 @@ impl HandleForgotten {
      */
     fn strike_torrents(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>) -> Result<Vec<Torrent>, anyhow::Error> {
         // Get torrent hashes of torrents that meet criteria
-        let criteria_met_hashes: Vec<String> = torrents_criteria
-            .clone()
-            .values()
-            .filter(|torrent_criteria| torrent_criteria.1)
-            .map(|torrent_criteria| torrent_criteria.0.hash().to_string())
-            .collect();
+        let criteria_met_hashes: Vec<String> = torrents_criteria.values().filter(|(_, met)| *met).map(|(torrent, _)| torrent.hash().to_string()).collect();
 
         // Strike torrents that meet criteria
-        strike_utils
-            .strike(StrikeType::HandleForgotten, criteria_met_hashes)
-            .context("[handle_forgotten] Failed to strike hashes")?;
+        strike_utils.strike(StrikeType::HandleForgotten, criteria_met_hashes.clone()).context("[handle_forgotten] Failed to strike hashes")?;
 
         // Get all strike stuff from the db for this job
-        let strike_records = strike_utils.get_strikes(StrikeType::HandleForgotten).context("[handle_forgotten] Failed get strikes")?;
+        let strike_records = strike_utils.get_strikes(StrikeType::HandleForgotten, Some(criteria_met_hashes)).context("[handle_forgotten] Failed get strikes")?;
 
         // Get torrents that reached the strike limits
         let mut limit_reached_torrents: Vec<Torrent> = Vec::new();
@@ -144,10 +135,7 @@ impl HandleForgotten {
                 }
                 if is_any_not_meeting_criteria {
                     Logger::info("[handle_forgotten] Action: Deleting torrent but keeping files (at least 1 other torrent depends on them)");
-                    self.torrent_manager
-                        .delete_torrent(torrent.hash(), false)
-                        .await
-                        .context("[handle_forgotten] Failed to delete torrent")?;
+                    self.torrent_manager.delete_torrent(torrent.hash(), false).await.context("[handle_forgotten] Failed to delete torrent")?;
                 } else {
                     Logger::info("[handle_forgotten] Action: Deleting torrent and files");
                     self.torrent_manager.delete_torrent(torrent.hash(), true).await.context("[handle_forgotten] Failed to delete torrent")?;
@@ -265,14 +253,7 @@ impl HandleForgotten {
         match FileUtils::is_torrent_in_media_library(&torrent.content_path(), media_file_inodes) {
             Ok(is_torrent_in_media_library) => {
                 if is_torrent_in_media_library {
-                    Logger::trace(
-                        format!(
-                            "[handle_forgotten] Torrent doesn't meet criteria (has hardlink in media library): ({}) {}",
-                            torrent.hash(),
-                            torrent.name(),
-                        )
-                        .as_str(),
-                    );
+                    Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (has hardlink in media library): ({}) {}", torrent.hash(), torrent.name(),).as_str());
                     return false;
                 }
             }

@@ -80,28 +80,44 @@ impl StrikeUtils {
     /**
      * Get strikes
      */
-    pub fn get_strikes(&mut self, strike_type: StrikeType) -> Result<Vec<StrikeRecord>, anyhow::Error> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1")
-            .context("Failed to prepare get_strikes select")?;
+    pub fn get_strikes(&mut self, strike_type: StrikeType, hashes: Option<Vec<String>>) -> Result<Vec<StrikeRecord>, anyhow::Error> {
+        // Build statement from sql query
+        let mut stmt = match hashes.clone() {
+            Some(hashes) => {
+                let placeholders = std::iter::repeat("?").take(hashes.len()).collect::<Vec<&str>>().join(",");
+                let sql = format!("SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1 AND hash IN ({})", placeholders);
+                self.conn.prepare(sql.as_str()).context("Failed to prepare get_strikes select")?
+            }
+            None => self
+                .conn
+                .prepare("SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1")
+                .context("Failed to prepare get_strikes select")?,
+        };
 
-        let rows = stmt
-            .query_map(params![strike_type.to_string()], |row| {
-                let last_strike_date_str: String = row.get(5)?;
-                let last_strike_date =
-                    NaiveDate::parse_from_str(&last_strike_date_str, "%Y-%m-%d").map_err(|e| rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new(e)))?;
+        let rows = match hashes.clone() {
+            // Execute query based on if hashes are passed or not
+            Some(hashes) => {
+                let mut params: Vec<String> = vec![strike_type.to_string()];
+                params.extend(hashes);
+                let params: Vec<&dyn rusqlite::ToSql> = params.iter().map(|hash| hash as &dyn rusqlite::ToSql).collect();
+                stmt.query(params.as_slice()).context("Failed to execute query to get strikes")?
+            }
+            None => stmt.query(params![strike_type.to_string()]).context("Failed to execute query to get strikes")?,
+        }
+        // Map results
+        .mapped(|row| {
+            let last_strike_date_str: String = row.get(5)?;
+            let last_strike_date = NaiveDate::parse_from_str(&last_strike_date_str, "%Y-%m-%d").map_err(|e| rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new(e)))?;
 
-                Ok(StrikeRecord {
-                    id: row.get(0)?,
-                    strike_type: row.get(1)?,
-                    hash: row.get(2)?,
-                    strikes: row.get(3)?,
-                    strike_days: row.get(4)?,
-                    last_strike_date,
-                })
+            Ok(StrikeRecord {
+                id: row.get(0)?,
+                strike_type: row.get(1)?,
+                hash: row.get(2)?,
+                strikes: row.get(3)?,
+                strike_days: row.get(4)?,
+                last_strike_date,
             })
-            .context("Failed to execute get_strikes statement")?;
+        });
 
         let mut strike_records: Vec<StrikeRecord> = Vec::new();
         for row in rows {
@@ -122,7 +138,7 @@ impl StrikeUtils {
      */
     pub fn strike(&mut self, strike_type: StrikeType, hashes: Vec<String>) -> Result<(), anyhow::Error> {
         // Get current strike records
-        let strike_records = self.get_strikes(strike_type.clone()).context("Failed to get strike types")?;
+        let strike_records = self.get_strikes(strike_type.clone(), Some(hashes.clone())).context("Failed to get strike types")?;
 
         // Open transaction
         let tx = self.conn.transaction().context("Failed to get transaction")?;

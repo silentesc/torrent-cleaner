@@ -143,9 +143,9 @@ impl HandleOrphaned {
      * Strike paths
      */
     fn strike_paths(&self, strike_utils: &mut StrikeUtils, orphaned_path_strings: Vec<String>) -> Result<Vec<String>, anyhow::Error> {
-        strike_utils.strike(StrikeType::HandleOrphaned, orphaned_path_strings).context("[handle_orphaned] Failed to strike orhaned paths")?;
+        strike_utils.strike(StrikeType::HandleOrphaned, orphaned_path_strings.clone()).context("[handle_orphaned] Failed to strike orhaned paths")?;
 
-        let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned).context("[handle_orphaned] Failed get strikes")?;
+        let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned, Some(orphaned_path_strings)).context("[handle_orphaned] Failed get strikes")?;
 
         let mut limit_reached_path_strings: Vec<String> = Vec::new();
         for strike_record in strike_records {

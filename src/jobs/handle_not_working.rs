@@ -50,11 +50,11 @@ impl HandleNotWorking {
         Logger::debug("[handle_not_working] Getting torrent trackers...");
         let mut torrent_trackers: HashMap<String, Vec<Tracker>> = HashMap::new();
         for torrent in torrents.clone() {
-            let trackers =
-                self.torrent_manager
-                    .get_torrent_trackers(torrent.hash())
-                    .await
-                    .context(format!("[handle_not_working] Failed to get trackers for torrent: ({}) {}", torrent.hash(), torrent.name()))?;
+            let trackers = self
+                .torrent_manager
+                .get_torrent_trackers(torrent.hash())
+                .await
+                .context(format!("[handle_not_working] Failed to get trackers for torrent: ({}) {}", torrent.hash(), torrent.name()))?;
             torrent_trackers.insert(torrent.hash().to_string(), trackers);
         }
         Logger::debug("[handle_not_working] Received torrent trackers");
@@ -115,9 +115,7 @@ impl HandleNotWorking {
                 Some(trackers) => trackers,
                 None => &Vec::new(),
             };
-            self.send_notification(&discord_webhook_utils, &torrent, &trackers)
-                .await
-                .context("[handle_not_working] Failed to send notification")?;
+            self.send_notification(&discord_webhook_utils, &torrent, &trackers).await.context("[handle_not_working] Failed to send notification")?;
 
             // Take action
             self.take_action(&torrents_criteria, &torrent).await?;
@@ -135,20 +133,13 @@ impl HandleNotWorking {
      */
     fn strike_torrents(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>) -> Result<Vec<Torrent>, anyhow::Error> {
         // Get torrent hashes of torrents that meet criteria
-        let criteria_met_hashes: Vec<String> = torrents_criteria
-            .clone()
-            .values()
-            .filter(|torrent_criteria| torrent_criteria.1)
-            .map(|torrent_criteria| torrent_criteria.0.hash().to_string())
-            .collect();
+        let criteria_met_hashes: Vec<String> = torrents_criteria.values().filter(|(_, met)| *met).map(|(torrent, _)| torrent.hash().to_string()).collect();
 
         // Strike torrents that meet criteria
-        strike_utils
-            .strike(StrikeType::HandleNotWorking, criteria_met_hashes)
-            .context("[handle_not_working] Failed to strike hashes")?;
+        strike_utils.strike(StrikeType::HandleNotWorking, criteria_met_hashes.clone()).context("[handle_not_working] Failed to strike hashes")?;
 
         // Get all strike stuff from the db for this job
-        let strike_records = strike_utils.get_strikes(StrikeType::HandleNotWorking).context("[handle_not_working] Failed get strikes")?;
+        let strike_records = strike_utils.get_strikes(StrikeType::HandleNotWorking, Some(criteria_met_hashes)).context("[handle_not_working] Failed get strikes")?;
 
         // Get torrents that reached the strike limits
         let mut limit_reached_torrents: Vec<Torrent> = Vec::new();
@@ -186,16 +177,10 @@ impl HandleNotWorking {
                 }
                 if is_any_not_meeting_criteria {
                     Logger::info("[handle_not_working] Action: Deleting torrent but keeping files (at least 1 other torrent depends on them)");
-                    self.torrent_manager
-                        .delete_torrent(torrent.hash(), false)
-                        .await
-                        .context("[handle_not_working] Failed to delete torrent")?;
+                    self.torrent_manager.delete_torrent(torrent.hash(), false).await.context("[handle_not_working] Failed to delete torrent")?;
                 } else {
                     Logger::info("[handle_not_working] Action: Deleting torrent and files");
-                    self.torrent_manager
-                        .delete_torrent(torrent.hash(), true)
-                        .await
-                        .context("[handle_not_working] Failed to delete torrent")?;
+                    self.torrent_manager.delete_torrent(torrent.hash(), true).await.context("[handle_not_working] Failed to delete torrent")?;
                 }
             }
         }
@@ -319,14 +304,7 @@ impl HandleNotWorking {
             match TrackerStatus::from_int(*tracker.status()) {
                 Ok(tracker_status) => {
                     if matches!(tracker_status, TrackerStatus::Working) {
-                        Logger::trace(
-                            format!(
-                                "[handle_not_working] Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}",
-                                torrent.hash(),
-                                torrent.name(),
-                            )
-                            .as_str(),
-                        );
+                        Logger::trace(format!("[handle_not_working] Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}", torrent.hash(), torrent.name(),).as_str());
                         return false;
                     }
                 }
