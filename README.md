@@ -3,7 +3,7 @@
 # Features
 - Striking (action only taken on x strikes over y **continuous** days)
 - Protection Tag individually for every job
-- Discord Webhook Notifications
+- Discord Webhook Notifications (disable by leaving it blank)
 - Supports cross-seeding that either uses hardlinks or uses the excact same files
 - Written in Rust with a focus on performance and stability
 - Supported torrent clients:
@@ -13,11 +13,22 @@
 - HandleForgotten (handle torrents that are not present in the media dir):
   - All features from above, plus:
     - Minimum seeding days (action only taken if torrent was **actively seeding** for x days)
+    - Supported actions:
+      - test (Log, Discord Notification)
+      - stop (Stop torrent, Log, Discord Notification)
+      - delete (Delete torrent (and files if possible), Log, Discord Notification)
 - HandleNotWorking (handle torrents that have no working trackers)
   - All features from above, plus:
-    - If there is a working tracker, the process is reset
+    - If there is a working tracker, the striking process is reset
+    - Supported actions:
+      - test (Log, Discord Notification)
+      - stop (Stop torrent, Log, Discord Notification)
+      - delete (Delete torrent (and files if possible), Log, Discord Notification)
 - HandleOrphaned (handle files/folders that are not used by any torrent)
   - All features from above
+  - Supported actions:
+      - test (Log, Discord Notification)
+      - delete (Delete files/folders, Log, Discord Notification)
 
 # Prerequirements
 - Have the torrents and media library on the same filesystem (needed for hardlinking)
