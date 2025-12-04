@@ -193,7 +193,7 @@ impl HandleOrphaned {
         }
 
         let metadata = fs::metadata(path).context("[handle_orphaned] Failed to get file metadata")?;
-        let file_size_gb_string = format!("{:.2}GB", (metadata.len() as f32) / 1000.0 / 1000.0 / 1000.0);
+        let file_size_gb_string = format!("{:.2}GB", (metadata.len() / 1000 / 1000) as f32 / 1000.0);
         let modified_time = metadata.modified().context("Failed to get file modified SystemTime")?;
 
         let modified_time: DateTime<Local> = modified_time.into();

@@ -165,10 +165,10 @@ impl HandleForgotten {
             return Ok(());
         }
 
-        let total_size_gib = format!("{:.2}", (*torrent.total_size() as f32) / 1024.0 / 1024.0 / 1024.0);
-        let total_size_gb = format!("{:.2}", (*torrent.total_size() as f32) / 1000.0 / 1000.0 / 1000.0);
+        let total_size_gib = format!("{:.2}", (*torrent.total_size() / 1024 / 1024) as f32 / 1024.0);
+        let total_size_gb = format!("{:.2}", (*torrent.total_size() / 1000 / 1000) as f32 / 1000.0);
 
-        let seeding_days = format!("{:.2}", (*torrent.seeding_time() as f32) / 60.0 / 60.0 / 24.0);
+        let seeding_days = format!("{:.2}", (torrent.seeding_time() / 60 / 60) as f32 / 24.0);
 
         let added_on_str = match Local.timestamp_opt(*torrent.added_on(), 0).single() {
             Some(datetime_local) => datetime_local.format("%Y-%m-%d %H:%M:%S").to_string(),
@@ -247,8 +247,8 @@ impl HandleForgotten {
             return false;
         }
         // Seed time
-        let seeding_days = (torrent.seeding_time() / 60 / 60 / 24) as i32;
-        if seeding_days < self.config.jobs().handle_forgotten().min_seeding_days() {
+        let seeding_days = torrent.seeding_time() / 60 / 60 / 24;
+        if seeding_days < self.config.jobs().handle_forgotten().min_seeding_days() as i64 {
             Logger::trace(
                 format!(
                     "[handle_forgotten] Torrent doesn't meet criteria (minimum seed day limit {}/{}): ({}) {}",
