@@ -4,9 +4,7 @@
 - Striking (action only taken on x strikes over y **continuous** days)
 - Protection Tag individually for every job
 - Discord Webhook Notifications
-- Supports Cross-Seeding that
-  - uses hardlinks
-  - uses the excact same files
+- Supports cross-seeding that either uses hardlinks or uses the excact same files
 - Written in Rust with a focus on performance and stability
 - Supported torrent clients:
   - qBittorrent
