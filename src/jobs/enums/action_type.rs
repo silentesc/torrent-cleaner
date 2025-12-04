@@ -18,12 +18,4 @@ impl ActionType {
             }
         }
     }
-
-    pub fn to_string(&self) -> String {
-        match self {
-            ActionType::Test => String::from("test"),
-            ActionType::Stop => String::from("stop"),
-            ActionType::Delete => String::from("delete"),
-        }
-    }
 }
