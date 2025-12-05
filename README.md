@@ -1,4 +1,4 @@
-# IN ACTIVE DEVELOPMENT
+# IN ACTIVE DEVELOPMENT, USE AT OWN RISK
 
 # Features
 - Striking (action only taken on x strikes over y **continuous** days)
@@ -76,14 +76,14 @@ The config will create itself on first start with recommended settings, but stil
       "min_seeding_days": 20,
       "min_strike_days": 3,
       "required_strikes": 3,
-      "protection_tag": "protected",
+      "protection_tag": "protected-forgotten",
       "action": "test" // test, stop, delete
     },
     "handle_not_working": {
       "interval_hours": 3, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 5,
       "required_strikes": 10,
-      "protection_tag": "protected",
+      "protection_tag": "protected-not_working",
       "action": "test" // test, stop, delete
     },
     "handle_orphaned": {
