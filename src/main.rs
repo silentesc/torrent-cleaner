@@ -54,7 +54,13 @@ mod jobs {
         pub mod receiver;
         pub mod striker;
     }
-    pub mod handle_orphaned;
+    pub mod handle_orphaned {
+        pub mod action_taker;
+        pub mod handle_orphaned;
+        pub mod notifier;
+        pub mod receiver;
+        pub mod striker;
+    }
 }
 
 mod config;

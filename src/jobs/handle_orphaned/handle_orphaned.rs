@@ -1,0 +1,106 @@
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+};
+
+use anyhow::Context;
+use reqwest::Url;
+
+use crate::{
+    config::Config,
+    jobs::{
+        enums::strike_type::StrikeType,
+        handle_orphaned::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
+        utils::{discord_webhook_utils::DiscordWebhookUtils, strike_utils::StrikeUtils},
+    },
+    logger::logger::Logger,
+    torrent_clients::torrent_manager::TorrentManager,
+};
+
+pub struct HandleOrphaned {
+    torrent_manager: Arc<TorrentManager>,
+    config: Config,
+    torrents_path: String,
+}
+
+impl HandleOrphaned {
+    pub fn new(torrent_manager: Arc<TorrentManager>, config: Config, torrents_path: String) -> Self {
+        Self { torrent_manager, config, torrents_path }
+    }
+
+    pub async fn run(&self) -> Result<(), anyhow::Error> {
+        let discord_webhook_url: Option<Url> = match self.config.notification().discord_webhook_url().len() > 1 {
+            true => Some(Url::parse(self.config.notification().discord_webhook_url()).context("[handle_orphaned] Failed to parse discord_webhook_url")?),
+            false => None,
+        };
+        let discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
+
+        // Login
+        self.torrent_manager.login().await.context("[handle_orphaned] Failed to login to torrent client")?;
+
+        // Get torrent_paths
+        let torrent_paths = Receiver::get_torrent_paths(self.torrent_manager.clone()).await?;
+
+        // Get orphaned_path_strings
+        let orphaned_path_strings: Vec<String> = Receiver::get_orphaned_path_strings(&torrent_paths, &self.torrents_path).await?;
+
+        let mut strike_utils = StrikeUtils::new()?;
+
+        // Strike orphaned paths
+        Logger::debug("[handle_orphaned] Striking orphaned paths...");
+        let limit_reached_path_strings = Striker::strike_paths(&mut strike_utils, orphaned_path_strings, &self.config)?;
+        Logger::debug(format!("[handle_orphaned] Done striking, {} paths reached their limit. Action will be taken now", limit_reached_path_strings.len()).as_str());
+
+        // Go through paths
+        for path_string in limit_reached_path_strings.clone() {
+            let path = Path::new(path_string.as_str());
+
+            // Log
+            Logger::info(format!("[handle_orphaned] Orphaned path: {}", path_string).as_str());
+
+            // Notification
+            Notifier::send_notification(&discord_webhook_utils, path_string.as_str(), path, &self.config)
+                .await
+                .context("[handle_orphaned] Failed to send notification")?;
+
+            // Take action
+            ActionTaker::take_action(path, &self.config);
+        }
+
+        // Remove paths that reached limit and were handled from db
+        strike_utils.delete(StrikeType::HandleOrphaned, limit_reached_path_strings)?;
+
+        // Clean db
+        Logger::debug("[handle_orphaned] Cleaning db...");
+        self.clean_db(&mut strike_utils, &torrent_paths)?;
+        Logger::debug("[handle_orphaned] Cleaned db");
+
+        // Logout
+        self.torrent_manager.logout().await.context("[handle_orphaned] Failed to logout of torrent client")?;
+
+        Ok(())
+    }
+
+    /**
+     * Clean db
+     */
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrent_paths: &HashSet<PathBuf>) -> Result<(), anyhow::Error> {
+        let mut hashes_to_remove: Vec<String> = Vec::new();
+
+        let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned, None).context("[handle_orphaned] Failed to get all strikes for HandleOrphaned")?;
+        for strike_record in strike_records {
+            let strike_record_path = PathBuf::from_str(strike_record.hash()).context("[handle_orphaned] Failed to get PathBuf from strike_record")?;
+            if torrent_paths.contains(&strike_record_path) {
+                hashes_to_remove.push(strike_record.hash().to_string());
+            }
+        }
+
+        Logger::trace(format!("[handle_orphaned] Deleting {} paths from strike db", hashes_to_remove.len()).as_str());
+
+        strike_utils.delete(StrikeType::HandleOrphaned, hashes_to_remove).context("[handle_orphaned] Failed to delete paths from strike db")?;
+
+        Ok(())
+    }
+}
