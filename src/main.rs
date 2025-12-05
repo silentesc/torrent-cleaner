@@ -40,7 +40,13 @@ mod jobs {
         pub mod file_utils;
         pub mod strike_utils;
     }
-    pub mod handle_forgotten;
+    pub mod handle_forgotten {
+        pub mod handle_forgotten;
+        pub mod receiver;
+        pub mod striker;
+        pub mod notifier;
+        pub mod action_taker;
+    }
     pub mod handle_not_working;
     pub mod handle_orphaned;
 }

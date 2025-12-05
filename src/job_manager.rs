@@ -4,7 +4,7 @@ use tokio::{sync::Mutex, time::sleep};
 
 use crate::{
     config::Config,
-    jobs::{handle_forgotten::HandleForgotten, handle_not_working::HandleNotWorking, handle_orphaned::HandleOrphaned},
+    jobs::{handle_forgotten::handle_forgotten::HandleForgotten, handle_not_working::HandleNotWorking, handle_orphaned::HandleOrphaned},
     logger::logger::Logger,
     torrent_clients::torrent_manager::TorrentManager,
 };
