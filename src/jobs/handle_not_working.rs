@@ -41,6 +41,9 @@ impl HandleNotWorking {
         };
         let discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
 
+        // Login
+        self.torrent_manager.login().await.context("[handle_not_working] Failed to login to torrent client")?;
+
         // Get torrents from torrent client
         Logger::debug("[handle_not_working] Getting torrents...");
         let torrents = self.torrent_manager.get_all_torrents().await.context("[handle_not_working] Failed to get all torrents")?;
@@ -101,6 +104,9 @@ impl HandleNotWorking {
         Logger::debug("[handle_not_working] Cleaning db...");
         self.clean_db(&mut strike_utils, &torrents_criteria)?;
         Logger::debug("[handle_not_working] Cleaned db");
+
+        // Logout
+        self.torrent_manager.logout().await.context("[handle_not_working] Failed to logout of torrent client")?;
 
         Ok(())
     }

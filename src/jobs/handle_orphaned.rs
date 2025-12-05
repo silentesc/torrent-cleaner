@@ -38,6 +38,9 @@ impl HandleOrphaned {
         };
         let discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
 
+        // Login
+        self.torrent_manager.login().await.context("[handle_orphaned] Failed to login to torrent client")?;
+
         let mut strike_utils = StrikeUtils::new()?;
 
         // Get torrents from torrent client
@@ -138,6 +141,9 @@ impl HandleOrphaned {
         Logger::debug("[handle_orphaned] Cleaning db...");
         self.clean_db(&mut strike_utils, &torrent_paths)?;
         Logger::debug("[handle_orphaned] Cleaned db");
+
+        // Logout
+        self.torrent_manager.logout().await.context("[handle_orphaned] Failed to logout of torrent client")?;
 
         Ok(())
     }

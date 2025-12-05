@@ -46,6 +46,9 @@ impl HandleForgotten {
         };
         let discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
 
+        // Login
+        self.torrent_manager.login().await.context("[handle_forgotten] Failed to login to torrent client")?;
+
         // Get torrents from torrent client
         Logger::debug("[handle_forgotten] Getting torrents...");
         let torrents = self.torrent_manager.get_all_torrents().await.context("[handle_forgotten] Failed to get all torrents")?;
@@ -90,6 +93,9 @@ impl HandleForgotten {
         Logger::debug("[handle_forgotten] Cleaning db...");
         self.clean_db(&mut strike_utils, &torrents_criteria)?;
         Logger::debug("[handle_forgotten] Cleaned db");
+
+        // Logout
+        self.torrent_manager.logout().await.context("[handle_forgotten] Failed to logout of torrent client")?;
 
         Ok(())
     }

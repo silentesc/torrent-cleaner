@@ -114,12 +114,6 @@ async fn main() {
         }
     };
 
-    // Login to torrent client
-    if let Err(e) = torrent_manager.login().await {
-        Logger::error(format!("Failed to login: {:#}", e).as_str());
-        return;
-    }
-
     // Setup jobs
     let job_manager = JobManager::new(config.clone(), torrent_manager.clone(), torrents_path.clone(), media_path.clone());
     job_manager.setup();
@@ -135,15 +129,7 @@ async fn main() {
     };
 
     // Cleanup after shutdown
-    match torrent_manager.logout().await {
-        Ok(_) => Logger::info("Logged out of qbittorrent"),
-        Err(e) => Logger::error(format!("Failed to logout: {:#}", e).as_str()),
-    }
-
     Logger::info("Checking if any jobs are running and waiting if there are any...");
-
-    // Try to wait until all jobs are finished
     let _ = job_manager.job_lock().lock().await;
-
     Logger::info("All jobs are done, graceful shutdown was successful");
 }
