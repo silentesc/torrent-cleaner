@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::{HashMap, HashSet}, sync::Arc};
 
 use anyhow::Context;
 use chrono::{Local, TimeZone};
@@ -257,7 +257,7 @@ impl HandleForgotten {
     /**
      * Is criteria met
      */
-    fn is_criteria_met(&self, torrent: &Torrent, media_file_inodes: &Vec<u64>) -> bool {
+    fn is_criteria_met(&self, torrent: &Torrent, media_file_inodes: &HashSet<u64>) -> bool {
         // Uncompleted
         if *torrent.completion_on() == -1 {
             Logger::trace(format!("[handle_forgotten] Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),).as_str());

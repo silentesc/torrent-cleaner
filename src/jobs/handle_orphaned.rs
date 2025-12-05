@@ -1,8 +1,5 @@
 use std::{
-    fs,
-    path::{Path, PathBuf},
-    str::FromStr,
-    sync::Arc,
+    collections::HashSet, fs, path::{Path, PathBuf}, str::FromStr, sync::Arc
 };
 
 use anyhow::Context;
@@ -50,7 +47,7 @@ impl HandleOrphaned {
 
         // Get torrent paths
         Logger::debug("[handle_orphaned] Getting all paths in all torrents...");
-        let mut torrent_paths: Vec<PathBuf> = Vec::new();
+        let mut torrent_paths: HashSet<PathBuf> = HashSet::new();
         for torrent in torrents {
             // Ignore incomplete
             if *torrent.completion_on() == -1 {
@@ -60,18 +57,18 @@ impl HandleOrphaned {
                 let entry_result = entry.context("[handle_orphaned] Failed to get entry_result")?;
                 // Check for file
                 if entry_result.file_type().is_file() {
-                    torrent_paths.push(entry_result.into_path());
+                    torrent_paths.insert(entry_result.into_path());
                 }
                 // Check for empty dir
                 else if entry_result.file_type().is_dir() {
                     let mut entries = fs::read_dir(entry_result.path()).context("[handle_orphaned] Failed to read dir")?;
                     if entries.next().is_none() {
-                        torrent_paths.push(entry_result.into_path());
+                        torrent_paths.insert(entry_result.into_path());
                     }
                 }
             }
         }
-        Logger::debug(format!("[handle_orphaned] Received {} torrent paths", torrent_paths.len()).as_str());
+        Logger::debug(format!("[handle_orphaned] Received {} unique torrent paths", torrent_paths.len()).as_str());
 
         // Get paths not present in any torrents
         Logger::debug("[handle_orphaned] Getting orphaned paths (files/folders that are not part of any torrent)...");
@@ -195,7 +192,7 @@ impl HandleOrphaned {
     /**
      * Clean db
      */
-    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrent_paths: &Vec<PathBuf>) -> Result<(), anyhow::Error> {
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrent_paths: &HashSet<PathBuf>) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
 
         let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned, None).context("[handle_orphaned] Failed to get all strikes for HandleOrphaned")?;

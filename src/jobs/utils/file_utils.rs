@@ -1,4 +1,4 @@
-use std::{os::unix::fs::MetadataExt, path::Path};
+use std::{collections::HashSet, os::unix::fs::MetadataExt, path::Path};
 
 use anyhow::Context;
 use walkdir::WalkDir;
@@ -6,20 +6,20 @@ use walkdir::WalkDir;
 pub struct FileUtils {}
 
 impl FileUtils {
-    pub fn get_media_file_inodes(media_folder_path: &str) -> Result<Vec<u64>, anyhow::Error> {
-        let mut media_inodes: Vec<u64> = Vec::new();
+    pub fn get_media_file_inodes(media_folder_path: &str) -> Result<HashSet<u64>, anyhow::Error> {
+        let mut media_inodes: HashSet<u64> = HashSet::new();
         for entry in WalkDir::new(media_folder_path) {
             let entry_result = entry.context("Failed to get entry_result")?;
             if entry_result.file_type().is_file() {
                 let metadata = entry_result.metadata().context("Failed to get file metadata")?;
                 let inode = metadata.ino();
-                media_inodes.push(inode);
+                media_inodes.insert(inode);
             }
         }
         Ok(media_inodes)
     }
 
-    pub fn is_torrent_in_media_library(torrent_content_path: &str, media_file_inodes: &Vec<u64>) -> Result<bool, anyhow::Error> {
+    pub fn is_torrent_in_media_library(torrent_content_path: &str, media_file_inodes: &HashSet<u64>) -> Result<bool, anyhow::Error> {
         let content_path = Path::new(torrent_content_path);
 
         if !content_path.exists() {
