@@ -41,13 +41,19 @@ mod jobs {
         pub mod strike_utils;
     }
     pub mod handle_forgotten {
+        pub mod action_taker;
         pub mod handle_forgotten;
+        pub mod notifier;
         pub mod receiver;
         pub mod striker;
-        pub mod notifier;
-        pub mod action_taker;
     }
-    pub mod handle_not_working;
+    pub mod handle_not_working {
+        pub mod action_taker;
+        pub mod handle_not_working;
+        pub mod notifier;
+        pub mod receiver;
+        pub mod striker;
+    }
     pub mod handle_orphaned;
 }
 
