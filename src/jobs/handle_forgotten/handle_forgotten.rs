@@ -43,7 +43,7 @@ impl HandleForgotten {
         self.torrent_manager.login().await.context("[handle_forgotten] Failed to login to torrent client")?;
 
         // Get torrents from torrent client with criteria
-        let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrent_criteria(self.torrent_manager.clone(), &self.config, &self.media_folder_path).await?;
+        let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(self.torrent_manager.clone(), &self.config, &self.media_folder_path).await?;
 
         // Striking
         Logger::debug("[handle_forgotten] Striking torrents...");

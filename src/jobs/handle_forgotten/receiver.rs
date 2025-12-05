@@ -15,7 +15,7 @@ use crate::{
 pub struct Receiver;
 
 impl Receiver {
-    pub async fn get_torrent_criteria(torrent_manager: Arc<TorrentManager>, config: &Config, media_folder_path: &String) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
+    pub async fn get_torrents_criteria(torrent_manager: Arc<TorrentManager>, config: &Config, media_folder_path: &String) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
         // Get torrents from torrent client
         Logger::debug("[handle_forgotten] Getting torrents...");
         let torrents = torrent_manager.get_all_torrents().await.context("[handle_forgotten] Failed to get all torrents")?;
