@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, HashSet}, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use anyhow::Context;
 use chrono::{Local, TimeZone};
@@ -122,22 +125,28 @@ impl HandleForgotten {
      * Take action
      */
     async fn take_action(&self, torrents_criteria: &HashMap<String, (Torrent, bool)>, torrent: &Torrent) -> Result<(), anyhow::Error> {
+        let mut is_any_not_meeting_criteria = false;
+        for (torrent, is_criteria_met) in torrents_criteria.values() {
+            if !*is_criteria_met && torrent.content_path() == torrent.content_path() {
+                is_any_not_meeting_criteria = true;
+                break;
+            }
+        }
         match ActionType::from_str(self.config.jobs().handle_forgotten().action()) {
             ActionType::Test => {
                 Logger::info("[handle_forgotten] Action: Test");
+                if is_any_not_meeting_criteria {
+                    Logger::debug("[handle_forgotten] At least 1 other torrent depends this torrents files");
+                }
             }
             ActionType::Stop => {
                 Logger::info("[handle_forgotten] Action: Stopping torrent");
+                if is_any_not_meeting_criteria {
+                    Logger::debug("[handle_forgotten] At least 1 other torrent depends this torrents files");
+                }
                 self.torrent_manager.stop_torrent(torrent.hash()).await.context("[handle_forgotten] Failed to stop torrent")?;
             }
             ActionType::Delete => {
-                let mut is_any_not_meeting_criteria = false;
-                for torrent_criteria in torrents_criteria.values() {
-                    if torrent_criteria.0.content_path() == torrent.content_path() && !torrent_criteria.1 {
-                        is_any_not_meeting_criteria = true;
-                        break;
-                    }
-                }
                 if is_any_not_meeting_criteria {
                     Logger::info("[handle_forgotten] Action: Deleting torrent but keeping files (at least 1 other torrent depends on them)");
                     self.torrent_manager.delete_torrent(torrent.hash(), false).await.context("[handle_forgotten] Failed to delete torrent")?;
