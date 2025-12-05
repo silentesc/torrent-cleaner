@@ -56,17 +56,16 @@ impl Qbittorrent {
                     } else if attempt < max_retries {
                         // Not logged in anymore (e.g. qbittorrent restarted)
                         if respone.status() == StatusCode::UNAUTHORIZED || respone.status() == StatusCode::FORBIDDEN {
-                            Logger::warn(format!("Request to qbittorrent returned status code {}, trying to relogin", respone.status(),).as_str());
+                            Logger::error(format!("Request to qbittorrent returned status code {}, trying to relogin", respone.status(),).as_str());
                             match self.login().await {
                                 Ok(_) => {}
                                 Err(e) => return Err(e),
                             }
-                            sleep(delay).await;
                             continue;
                         }
                         // Any other non-successful status code
                         else {
-                            Logger::warn(
+                            Logger::error(
                                 format!(
                                     "Request to qbittorrent returned status code {}, waiting for {} seconds to try again: {}",
                                     respone.status(),
@@ -82,7 +81,7 @@ impl Qbittorrent {
                 }
                 // Request failed
                 Err(e) if attempt < max_retries => {
-                    Logger::warn(
+                    Logger::error(
                         format!(
                             "Request to qbittorrent failed on try {}/{}, waiting for {} seconds to try again: {}",
                             attempt + 1,
@@ -114,13 +113,13 @@ impl Qbittorrent {
             match self.client.post(endpoint.clone()).form(&(params.clone())).send().await {
                 Ok(response) => match response.headers().get("set-cookie") {
                     Some(_) => {
-                        Logger::info("Logged into qbittorrent");
+                        Logger::info("Logged in to qbittorrent");
                         return Ok(());
                     }
                     None => return Err(anyhow::anyhow!("Failed to authenticate to qbittorrent")),
                 },
                 Err(_) if attempt < max_retries => {
-                    Logger::warn(format!("Failed to login to qbittorrent on try {}/{}, waiting for {} seconds", attempt, max_retries, delay.as_secs(),).as_str());
+                    Logger::error(format!("Failed to login to qbittorrent on try {}/{}, waiting for {} seconds", attempt, max_retries, delay.as_secs(),).as_str());
                     sleep(delay).await;
                     continue;
                 }
@@ -141,6 +140,8 @@ impl Qbittorrent {
         let make_request_builder = || self.client.post(endpoint.clone());
 
         self.make_request(make_request_builder).await.context("Qbittorrent logout failed")?;
+
+        Logger::info("Logged out of qbittorrent");
 
         Ok(())
     }
