@@ -17,8 +17,8 @@ impl ActionTaker {
      */
     pub async fn take_action(torrent_manager: Arc<TorrentManager>, torrents_criteria: &HashMap<String, (Torrent, bool)>, torrent: &Torrent, config: &Config) -> Result<(), anyhow::Error> {
         let mut is_any_not_meeting_criteria = false;
-        for (torrent, is_criteria_met) in torrents_criteria.values() {
-            if !*is_criteria_met && torrent.content_path() == torrent.content_path() {
+        for (t, is_criteria_met) in torrents_criteria.values() {
+            if !*is_criteria_met && torrent.content_path() == t.content_path() {
                 is_any_not_meeting_criteria = true;
                 break;
             }
