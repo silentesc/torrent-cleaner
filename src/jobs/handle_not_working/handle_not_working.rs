@@ -55,13 +55,7 @@ impl HandleNotWorking {
         let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(&torrents, &torrent_trackers, &self.config).await?;
         Logger::debug("[handle_not_working] Done checking torrents for criteria");
 
-        Logger::info(
-            format!(
-                "[handle_not_working] {} torrents don't meet criteria",
-                torrents_criteria.values().filter(|(_, is_criteria_met)| !*is_criteria_met).count()
-            )
-            .as_str(),
-        );
+        Logger::info(format!("[handle_not_working] {} torrents meet criteria", torrents_criteria.values().filter(|(_, is_criteria_met)| *is_criteria_met).count()).as_str());
 
         // Striking
         Logger::debug("[handle_not_working] Striking torrents...");
@@ -69,7 +63,7 @@ impl HandleNotWorking {
         let limit_reached_torrents = Striker::strike_torrents(&mut strike_utils, &torrents_criteria, &self.config)?;
         Logger::debug("[handle_not_working] Done striking torrents");
 
-        Logger::info(format!("[handle_not_working] {} torrents that don't meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str());
+        Logger::info(format!("[handle_not_working] {} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str());
 
         // Go through torrents
         for torrent in limit_reached_torrents.clone() {
