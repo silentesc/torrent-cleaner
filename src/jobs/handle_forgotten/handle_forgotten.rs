@@ -45,11 +45,15 @@ impl HandleForgotten {
         // Get torrents from torrent client with criteria
         let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(self.torrent_manager.clone(), &self.config, &self.media_folder_path).await?;
 
+        Logger::info(format!("[handle_forgotten] {} torrents don't meet criteria", torrents_criteria.values().filter(|(_, is_criteria_met)| !*is_criteria_met).count()).as_str());
+
         // Striking
         Logger::debug("[handle_forgotten] Striking torrents...");
         let mut strike_utils = StrikeUtils::new()?;
         let limit_reached_torrents = Striker::strike_torrents(&mut strike_utils, &torrents_criteria, &self.config)?;
-        Logger::debug(format!("[handle_forgotten] Done striking, {} torrents reached their limit. Action will be taken now", limit_reached_torrents.len()).as_str());
+        Logger::debug("[handle_forgotten] Done striking torrents");
+
+        Logger::info(format!("[handle_forgotten] {} torrents that don't meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str());
 
         // Go through torrents
         for torrent in limit_reached_torrents.clone() {
@@ -102,7 +106,7 @@ impl HandleForgotten {
             }
         }
 
-        Logger::trace(format!("[handle_forgotten] Deleting {} hashes", hashes_to_remove.len()).as_str());
+        Logger::debug(format!("[handle_forgotten] Deleting {} hashes", hashes_to_remove.len()).as_str());
 
         strike_utils.delete(StrikeType::HandleForgotten, hashes_to_remove).context("[handle_forgotten] Failed to delete hashes")?;
 

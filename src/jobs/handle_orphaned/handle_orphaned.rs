@@ -51,7 +51,9 @@ impl HandleOrphaned {
         // Strike orphaned paths
         Logger::debug("[handle_orphaned] Striking orphaned paths...");
         let limit_reached_path_strings = Striker::strike_paths(&mut strike_utils, orphaned_path_strings, &self.config)?;
-        Logger::debug(format!("[handle_orphaned] Done striking, {} paths reached their limit. Action will be taken now", limit_reached_path_strings.len()).as_str());
+        Logger::debug("[handle_orphaned] Done striking paths");
+
+        Logger::info(format!("[handle_orphaned] {} paths have reached their strike limits", limit_reached_path_strings.len()).as_str());
 
         // Go through paths
         for path_string in limit_reached_path_strings.clone() {
@@ -97,7 +99,7 @@ impl HandleOrphaned {
             }
         }
 
-        Logger::trace(format!("[handle_orphaned] Deleting {} paths from strike db", hashes_to_remove.len()).as_str());
+        Logger::debug(format!("[handle_orphaned] Deleting {} paths from strike db", hashes_to_remove.len()).as_str());
 
         strike_utils.delete(StrikeType::HandleOrphaned, hashes_to_remove).context("[handle_orphaned] Failed to delete paths from strike db")?;
 

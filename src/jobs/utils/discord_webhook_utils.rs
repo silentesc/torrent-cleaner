@@ -37,9 +37,31 @@ impl DiscordWebhookUtils {
                 match self.client.post(discord_webhook_url.clone()).json(payload).send().await {
                     Ok(response) => {
                         if response.status() == 429 {
+                            // Try get header_value
                             let retry_after_seconds = match response.headers().get("retry_after") {
-                                Some(header_value) => header_value.to_str().unwrap_or("1").parse().unwrap_or(1.0),
-                                None => 1.0,
+                                Some(header_value) => {
+                                    // Try get string from header_value
+                                    match header_value.to_str() {
+                                        Ok(str) => {
+                                            // Try to parse string to f64
+                                            match str.parse() {
+                                                Ok(f) => f,
+                                                Err(e) => {
+                                                    Logger::warn(format!("Failed to parse retry_after header value to f64, using default 1.0: {:#}", e).as_str());
+                                                    1.0
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            Logger::warn(format!("Failed to get string from retry_after header, using default 1.0: {:#}", e).as_str());
+                                            1.0
+                                        }
+                                    }
+                                }
+                                None => {
+                                    Logger::warn(format!("Failed to get retry_after from headers, using default 1.0").as_str());
+                                    1.0
+                                }
                             };
                             if retry_after_seconds > 0.0 {
                                 Logger::warn(format!("Received status code 429 (too many requests) from discord, waiting {:.2} seconds", retry_after_seconds).as_str());
