@@ -35,7 +35,7 @@ impl HandleNotWorking {
             true => Some(Url::parse(self.config.notification().discord_webhook_url()).context("[handle_not_working] Failed to parse discord_webhook_url")?),
             false => None,
         };
-        let discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
+        let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
 
         // Login
         self.torrent_manager.login().await.context("[handle_not_working] Failed to login to torrent client")?;
@@ -75,7 +75,7 @@ impl HandleNotWorking {
                 Some(trackers) => trackers,
                 None => &Vec::new(),
             };
-            Notifier::send_notification(&discord_webhook_utils, &torrent, &trackers, &self.config)
+            Notifier::send_notification(&mut discord_webhook_utils, &torrent, &trackers, &self.config)
                 .await
                 .context("[handle_not_working] Failed to send notification")?;
 

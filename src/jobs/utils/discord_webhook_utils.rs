@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use chrono::Local;
 use reqwest::{
     Client, StatusCode, Url,
     header::{HeaderMap, RETRY_AFTER},
@@ -20,6 +21,7 @@ pub struct EmbedField {
 pub struct DiscordWebhookUtils {
     discord_webhook_url: Option<Url>,
     client: Client,
+    request_history: Vec<(i64, bool)>, // timestamp (seconds), is_success
 }
 
 impl DiscordWebhookUtils {
@@ -27,6 +29,7 @@ impl DiscordWebhookUtils {
         Self {
             discord_webhook_url,
             client: Client::new(),
+            request_history: Vec::new(),
         }
     }
 
@@ -34,7 +37,15 @@ impl DiscordWebhookUtils {
         return self.discord_webhook_url.is_some();
     }
 
-    fn get_retry_after_millis(&self, headers: &HeaderMap) -> u64 {
+    async fn get_retry_after_millis(&self, headers: &HeaderMap) -> u64 {
+        let timestamp_secs_now = Local::now().timestamp();
+        let fail_count_in_last_10_secs = self.request_history.iter().filter(|(timestamp_secs, is_success)| (timestamp_secs_now - 10 <= *timestamp_secs) && !*is_success).count();
+        if fail_count_in_last_10_secs >= 5 {
+            Logger::warn("5+ requests to discord failed in the last 10 seconds, waiting 60 seconds to cooldown...");
+            sleep(Duration::from_secs(60)).await;
+            Logger::info("Cooled down, continuing...");
+        }
+
         // Try get header_value
         match headers.get(RETRY_AFTER) {
             Some(header_value) => {
@@ -44,7 +55,7 @@ impl DiscordWebhookUtils {
                         // Try to parse string to f64
                         match str.parse::<u64>() {
                             Ok(retry_after_millis) => {
-                                retry_after_millis + 1000 // +1000 just to be safe, discord sometimes sends too low numbers and then directly sends 429 again
+                                retry_after_millis + 500 // +500 just to be safe, discord sometimes sends too low numbers and then directly sends 429 again
                             }
                             Err(e) => {
                                 Logger::warn(format!("Failed to parse RETRY_AFTER header value to f64, using default 3000ms: {:#}", e).as_str());
@@ -65,20 +76,29 @@ impl DiscordWebhookUtils {
         }
     }
 
-    async fn make_request(&self, payload: &Value) -> Result<(), anyhow::Error> {
+    async fn make_request(&mut self, payload: &Value) -> Result<(), anyhow::Error> {
         if let Some(discord_webhook_url) = &self.discord_webhook_url {
             loop {
                 match self.client.post(discord_webhook_url.clone()).json(payload).send().await {
+                    // Got a response
                     Ok(response) => {
-                        if response.status() == StatusCode::TOO_MANY_REQUESTS {
-                            let retry_after_millis = self.get_retry_after_millis(&response.headers());
+                        // Success
+                        if response.status().is_success() {
+                            self.request_history.push((Local::now().timestamp(), true));
+                            break;
+                        }
+                        // Error: 429
+                        else if response.status() == StatusCode::TOO_MANY_REQUESTS {
+                            self.request_history.push((Local::now().timestamp(), false));
+                            let retry_after_millis = self.get_retry_after_millis(&response.headers()).await;
                             if retry_after_millis > 0 {
                                 Logger::warn(format!("Received status code 429 (too many requests) from discord, waiting {:.2} seconds", (retry_after_millis as f64 / 1000.0)).as_str());
                                 sleep(Duration::from_millis(retry_after_millis)).await;
                             }
-                        } else if response.status().is_success() {
-                            break;
-                        } else {
+                        }
+                        // Error: Unexpected
+                        else {
+                            self.request_history.push((Local::now().timestamp(), false));
                             return Err(anyhow::anyhow!(
                                 "Sending discord notification failed with status code {}: {}",
                                 response.status(),
@@ -86,7 +106,9 @@ impl DiscordWebhookUtils {
                             ));
                         }
                     }
+                    // Request itself failed
                     Err(e) => {
+                        self.request_history.push((Local::now().timestamp(), false));
                         return Err(anyhow::anyhow!("Sending discord notification failed: {:#}", e));
                     }
                 }
@@ -95,7 +117,7 @@ impl DiscordWebhookUtils {
         Ok(())
     }
 
-    pub async fn send_webhook_embed(&self, title: &str, description: &str, fields: Vec<EmbedField>) -> Result<(), anyhow::Error> {
+    pub async fn send_webhook_embed(&mut self, title: &str, description: &str, fields: Vec<EmbedField>) -> Result<(), anyhow::Error> {
         let now_iso = chrono::Utc::now().to_rfc3339();
         let payload = json!({
             "username": "Torrent Cleaner",

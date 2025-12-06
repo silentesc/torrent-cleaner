@@ -16,7 +16,7 @@ impl Notifier {
     /**
      * Send notification
      */
-    pub async fn send_notification(discord_webhook_utils: &DiscordWebhookUtils, torrent: &Torrent, trackers: &Vec<Tracker>, config: &Config) -> Result<(), anyhow::Error> {
+    pub async fn send_notification(discord_webhook_utils: &mut DiscordWebhookUtils, torrent: &Torrent, trackers: &Vec<Tracker>, config: &Config) -> Result<(), anyhow::Error> {
         if !discord_webhook_utils.is_notifications_enabled() {
             return Ok(());
         }
