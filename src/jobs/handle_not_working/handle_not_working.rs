@@ -83,13 +83,9 @@ impl HandleNotWorking {
             ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, &torrent, &self.config).await?;
         }
 
-        // Remove torrents that reached limit and were handled from db
-        let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
-        strike_utils.delete(StrikeType::HandleNotWorking, limit_reached_torrent_hashes)?;
-
         // Clean db
         Logger::debug("[handle_not_working] Cleaning db...");
-        self.clean_db(&mut strike_utils, &torrents_criteria)?;
+        self.clean_db(&mut strike_utils, &torrents_criteria, &limit_reached_torrents)?;
         Logger::debug("[handle_not_working] Cleaned db");
 
         // Logout
@@ -101,8 +97,12 @@ impl HandleNotWorking {
     /**
      * Clean db
      */
-    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>) -> Result<(), anyhow::Error> {
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, limit_reached_torrents: &Vec<Torrent>) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
+
+        // Remove torrents that reached limit and were handled
+        let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
+        strike_utils.delete(StrikeType::HandleNotWorking, limit_reached_torrent_hashes)?;
 
         let strike_records = strike_utils
             .get_strikes(StrikeType::HandleNotWorking, None)

@@ -56,7 +56,7 @@ impl HandleForgotten {
         Logger::info(format!("[handle_forgotten] {} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str());
 
         // Go through torrents
-        for torrent in limit_reached_torrents.clone() {
+        for torrent in &limit_reached_torrents {
             // Log
             Logger::info(format!("[handle_forgotten] Torrent forgotten: {}", torrent.name()).as_str());
 
@@ -69,13 +69,9 @@ impl HandleForgotten {
             ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, &torrent, &self.config).await?;
         }
 
-        // Remove torrents that reached limit and were handled from db
-        let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
-        strike_utils.delete(StrikeType::HandleForgotten, limit_reached_torrent_hashes)?;
-
         // Clean db
         Logger::debug("[handle_forgotten] Cleaning db...");
-        self.clean_db(&mut strike_utils, &torrents_criteria)?;
+        self.clean_db(&mut strike_utils, &torrents_criteria, &limit_reached_torrents)?;
         Logger::debug("[handle_forgotten] Cleaned db");
 
         // Logout
@@ -87,8 +83,12 @@ impl HandleForgotten {
     /**
      * Clean db
      */
-    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>) -> Result<(), anyhow::Error> {
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, limit_reached_torrents: &Vec<Torrent>) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
+
+        // Remove torrents that reached limit and were handled
+        let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
+        hashes_to_remove.extend(limit_reached_torrent_hashes);
 
         let strike_records = strike_utils.get_strikes(StrikeType::HandleForgotten, None).context("[handle_forgotten] Failed to get all strikes for HandleForgotten")?;
         for strike_record in strike_records {

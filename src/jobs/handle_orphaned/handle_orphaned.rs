@@ -71,12 +71,9 @@ impl HandleOrphaned {
             ActionTaker::take_action(path, &self.config);
         }
 
-        // Remove paths that reached limit and were handled from db
-        strike_utils.delete(StrikeType::HandleOrphaned, limit_reached_path_strings)?;
-
         // Clean db
         Logger::debug("[handle_orphaned] Cleaning db...");
-        self.clean_db(&mut strike_utils, &torrent_paths)?;
+        self.clean_db(&mut strike_utils, &torrent_paths, limit_reached_path_strings)?;
         Logger::debug("[handle_orphaned] Cleaned db");
 
         // Logout
@@ -88,8 +85,11 @@ impl HandleOrphaned {
     /**
      * Clean db
      */
-    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrent_paths: &HashSet<PathBuf>) -> Result<(), anyhow::Error> {
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrent_paths: &HashSet<PathBuf>, limit_reached_path_strings: Vec<String>) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
+
+        // Remove paths that reached limit and were handled from db
+        strike_utils.delete(StrikeType::HandleOrphaned, limit_reached_path_strings)?;
 
         let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned, None).context("[handle_orphaned] Failed to get all strikes for HandleOrphaned")?;
         for strike_record in strike_records {
