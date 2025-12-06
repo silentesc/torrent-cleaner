@@ -86,7 +86,7 @@ impl HandleForgotten {
     fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, limit_reached_torrents: &Vec<Torrent>) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
 
-        // Remove torrents that reached limit and were handled
+        // Torrents that reached limit and were handled
         let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
         hashes_to_remove.extend(limit_reached_torrent_hashes);
 

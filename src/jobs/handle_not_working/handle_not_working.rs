@@ -100,9 +100,9 @@ impl HandleNotWorking {
     fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, limit_reached_torrents: &Vec<Torrent>) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
 
-        // Remove torrents that reached limit and were handled
+        // Torrents that reached limit and were handled
         let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
-        strike_utils.delete(StrikeType::HandleNotWorking, limit_reached_torrent_hashes)?;
+        hashes_to_remove.extend(limit_reached_torrent_hashes);
 
         let strike_records = strike_utils
             .get_strikes(&StrikeType::HandleNotWorking, None)

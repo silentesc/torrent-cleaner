@@ -88,8 +88,8 @@ impl HandleOrphaned {
     fn clean_db(&self, strike_utils: &mut StrikeUtils, torrent_paths: &HashSet<PathBuf>, limit_reached_path_strings: Vec<String>) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
 
-        // Remove paths that reached limit and were handled from db
-        strike_utils.delete(StrikeType::HandleOrphaned, limit_reached_path_strings)?;
+        // Paths that reached limit and were handled from db
+        hashes_to_remove.extend(limit_reached_path_strings);
 
         let strike_records = strike_utils.get_strikes(&StrikeType::HandleOrphaned, None).context("[handle_orphaned] Failed to get all strikes for HandleOrphaned")?;
         for strike_record in strike_records {
