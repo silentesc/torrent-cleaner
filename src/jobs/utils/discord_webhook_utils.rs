@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use reqwest::{Client, Url};
+use reqwest::{
+    Client, StatusCode, Url,
+    header::{HeaderMap, RETRY_AFTER},
+};
 use serde::Serialize;
 use serde_json::{Value, json};
 use tokio::time::sleep;
@@ -31,41 +34,47 @@ impl DiscordWebhookUtils {
         return self.discord_webhook_url.is_some();
     }
 
+    fn get_retry_after_millis(&self, headers: &HeaderMap) -> u64 {
+        // Try get header_value
+        match headers.get(RETRY_AFTER) {
+            Some(header_value) => {
+                // Try get string from header_value
+                match header_value.to_str() {
+                    Ok(str) => {
+                        // Try to parse string to f64
+                        match str.parse::<u64>() {
+                            Ok(retry_after_millis) => {
+                                retry_after_millis + 1000 // +1000 just to be safe, discord sometimes sends too low numbers and then directly sends 429 again
+                            }
+                            Err(e) => {
+                                Logger::warn(format!("Failed to parse RETRY_AFTER header value to f64, using default 3000ms: {:#}", e).as_str());
+                                3000
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        Logger::warn(format!("Failed to get string from RETRY_AFTER header, using default 3000ms: {:#}", e).as_str());
+                        3000
+                    }
+                }
+            }
+            None => {
+                Logger::warn(format!("Failed to get RETRY_AFTER from headers, using default 3000ms").as_str());
+                3000
+            }
+        }
+    }
+
     async fn make_request(&self, payload: &Value) -> Result<(), anyhow::Error> {
         if let Some(discord_webhook_url) = &self.discord_webhook_url {
             loop {
                 match self.client.post(discord_webhook_url.clone()).json(payload).send().await {
                     Ok(response) => {
-                        if response.status() == 429 {
-                            // Try get header_value
-                            let retry_after_seconds = match response.headers().get("retry_after") {
-                                Some(header_value) => {
-                                    // Try get string from header_value
-                                    match header_value.to_str() {
-                                        Ok(str) => {
-                                            // Try to parse string to f64
-                                            match str.parse() {
-                                                Ok(f) => f,
-                                                Err(e) => {
-                                                    Logger::warn(format!("Failed to parse retry_after header value to f64, using default 1.0: {:#}", e).as_str());
-                                                    1.0
-                                                }
-                                            }
-                                        }
-                                        Err(e) => {
-                                            Logger::warn(format!("Failed to get string from retry_after header, using default 1.0: {:#}", e).as_str());
-                                            1.0
-                                        }
-                                    }
-                                }
-                                None => {
-                                    Logger::warn(format!("Failed to get retry_after from headers, using default 1.0").as_str());
-                                    1.0
-                                }
-                            };
-                            if retry_after_seconds > 0.0 {
-                                Logger::warn(format!("Received status code 429 (too many requests) from discord, waiting {:.2} seconds", retry_after_seconds).as_str());
-                                sleep(Duration::from_secs_f64(retry_after_seconds)).await;
+                        if response.status() == StatusCode::TOO_MANY_REQUESTS {
+                            let retry_after_millis = self.get_retry_after_millis(&response.headers());
+                            if retry_after_millis > 0 {
+                                Logger::warn(format!("Received status code 429 (too many requests) from discord, waiting {:.2} seconds", (retry_after_millis as f64 / 1000.0)).as_str());
+                                sleep(Duration::from_millis(retry_after_millis)).await;
                             }
                         } else if response.status().is_success() {
                             break;
