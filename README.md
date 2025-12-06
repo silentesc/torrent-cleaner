@@ -32,7 +32,7 @@
 
 # Prerequirements
 - Have the torrents and media library on the same filesystem (needed for hardlinking)
-- Use hardlinks only! Symlinks etc. are not supported and could in worst case cause data loss!
+- Use hardlinks only! Symlink, copying files, etc. is not supported and could cause data loss!
 - Have a parent folder with torrents/media folder inside (e.g. /data | /data/torrents | /data/media)
 
 # How to install
