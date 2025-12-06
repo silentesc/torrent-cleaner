@@ -23,7 +23,7 @@ pub enum TorrentState {
 }
 
 impl TorrentState {
-    pub fn as_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         match self {
             TorrentState::Error => String::from("error"),
             TorrentState::MissingFiles => String::from("missingFiles"),

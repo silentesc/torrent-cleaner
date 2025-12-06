@@ -18,7 +18,7 @@ impl LogLevel {
         }
     }
 
-    pub fn as_int(&self) -> i32 {
+    pub fn to_int(&self) -> i32 {
         match self {
             LogLevel::Trace => 0,
             LogLevel::Debug => 1,
@@ -28,7 +28,7 @@ impl LogLevel {
         }
     }
 
-    pub fn as_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         match self {
             LogLevel::Trace => String::from("TRACE"),
             LogLevel::Debug => String::from("DEBUG"),
@@ -38,7 +38,7 @@ impl LogLevel {
         }
     }
 
-    pub fn as_colored_string(&self) -> String {
+    pub fn to_colored_string(&self) -> String {
         const RESET: &str = "\x1b[0m";
         const RED: &str = "\x1b[31m";
         const YELLOW: &str = "\x1b[33m";

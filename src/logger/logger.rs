@@ -10,18 +10,18 @@ static LOG_LEVEL: AtomicI32 = AtomicI32::new(0);
 
 impl Logger {
     pub fn set_log_level(log_level: LogLevel) {
-        LOG_LEVEL.store(log_level.as_int(), Ordering::Relaxed);
+        LOG_LEVEL.store(log_level.to_int(), Ordering::Relaxed);
     }
 
     fn log(log_level: LogLevel, message: &str) {
         let current_log_level = LOG_LEVEL.load(Ordering::Relaxed);
-        if log_level.as_int() >= current_log_level {
+        if log_level.to_int() >= current_log_level {
             let date = Local::now();
             println!(
                 "{} | {}{} | {}",
                 date.format("%Y-%m-%d %H:%M:%S.%3f"),
-                log_level.as_colored_string(),
-                " ".repeat(5 - log_level.as_string().len()),
+                log_level.to_colored_string(),
+                " ".repeat(5 - log_level.to_string().len()),
                 message,
             );
         }

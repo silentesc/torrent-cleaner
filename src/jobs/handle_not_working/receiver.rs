@@ -65,10 +65,10 @@ impl Receiver {
         }
         // Stopped torrent
         if vec![
-            TorrentState::PausedUP.as_string(),
-            TorrentState::PausedDL.as_string(),
-            TorrentState::StoppedUP.as_string(),
-            TorrentState::StoppedDL.as_string(),
+            TorrentState::PausedUP.to_string(),
+            TorrentState::PausedDL.to_string(),
+            TorrentState::StoppedUP.to_string(),
+            TorrentState::StoppedDL.to_string(),
         ]
         .contains(&torrent.state().to_string())
         {

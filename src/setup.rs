@@ -15,7 +15,7 @@ impl Setup {
             Ok(log_level) => log_level,
             Err(e) => {
                 Logger::error(format!("Failed to get log_level env variable, using default (info): {:#}", e).as_str());
-                LogLevel::Info.as_string()
+                LogLevel::Info.to_string()
             }
         };
         Logger::set_log_level(LogLevel::from_string(log_level.as_str()));

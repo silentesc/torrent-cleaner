@@ -27,6 +27,7 @@ mod logger {
     pub mod logger;
     pub mod enums {
         pub mod log_level;
+        pub mod category;
     }
 }
 
