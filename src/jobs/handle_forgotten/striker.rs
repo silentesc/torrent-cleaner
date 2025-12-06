@@ -20,10 +20,10 @@ impl Striker {
         let criteria_met_hashes: Vec<String> = torrents_criteria.values().filter(|(_, met)| *met).map(|(torrent, _)| torrent.hash().to_string()).collect();
 
         // Strike torrents that meet criteria
-        strike_utils.strike(StrikeType::HandleForgotten, criteria_met_hashes.clone()).context("[handle_forgotten] Failed to strike hashes")?;
+        strike_utils.strike(&StrikeType::HandleForgotten, criteria_met_hashes.clone()).context("[handle_forgotten] Failed to strike hashes")?;
 
         // Get all strike stuff from the db for this job
-        let strike_records = strike_utils.get_strikes(StrikeType::HandleForgotten, Some(criteria_met_hashes)).context("[handle_forgotten] Failed get strikes")?;
+        let strike_records = strike_utils.get_strikes(&StrikeType::HandleForgotten, Some(criteria_met_hashes)).context("[handle_forgotten] Failed get strikes")?;
 
         // Get torrents that reached the strike limits
         let mut limit_reached_torrents: Vec<Torrent> = Vec::new();

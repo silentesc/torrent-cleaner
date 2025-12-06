@@ -13,10 +13,10 @@ impl Striker {
      */
     pub fn strike_paths(strike_utils: &mut StrikeUtils, orphaned_path_strings: Vec<String>, config: &Config) -> Result<Vec<String>, anyhow::Error> {
         strike_utils
-            .strike(StrikeType::HandleOrphaned, orphaned_path_strings.clone())
+            .strike(&StrikeType::HandleOrphaned, orphaned_path_strings.clone())
             .context("[handle_orphaned] Failed to strike orhaned paths")?;
 
-        let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned, Some(orphaned_path_strings)).context("[handle_orphaned] Failed get strikes")?;
+        let strike_records = strike_utils.get_strikes(&StrikeType::HandleOrphaned, Some(orphaned_path_strings)).context("[handle_orphaned] Failed get strikes")?;
 
         let mut limit_reached_path_strings: Vec<String> = Vec::new();
         for strike_record in strike_records {

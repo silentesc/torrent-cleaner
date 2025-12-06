@@ -29,7 +29,7 @@ impl Receiver {
         // Check torrents for criteria
         Logger::debug("[handle_forgotten] Checking torrents for criteria...");
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
-        for torrent in torrents.clone() {
+        for torrent in &torrents {
             torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), Receiver::is_criteria_met(&torrent, &media_file_inodes, config)));
         }
         Logger::debug("[handle_forgotten] Done checking torrents for criteria");

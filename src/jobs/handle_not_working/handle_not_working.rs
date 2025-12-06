@@ -66,7 +66,7 @@ impl HandleNotWorking {
         Logger::info(format!("[handle_not_working] {} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str());
 
         // Go through torrents
-        for torrent in limit_reached_torrents.clone() {
+        for torrent in &limit_reached_torrents {
             // Log
             Logger::info(format!("[handle_not_working] Torrent not working: {}", torrent.name()).as_str());
 
@@ -105,7 +105,7 @@ impl HandleNotWorking {
         strike_utils.delete(StrikeType::HandleNotWorking, limit_reached_torrent_hashes)?;
 
         let strike_records = strike_utils
-            .get_strikes(StrikeType::HandleNotWorking, None)
+            .get_strikes(&StrikeType::HandleNotWorking, None)
             .context("[handle_not_working] Failed to get all strikes for HandleNotWorking")?;
         for strike_record in strike_records {
             match torrents_criteria.get(strike_record.hash()) {

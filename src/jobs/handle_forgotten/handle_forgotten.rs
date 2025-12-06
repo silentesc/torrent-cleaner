@@ -90,7 +90,7 @@ impl HandleForgotten {
         let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
         hashes_to_remove.extend(limit_reached_torrent_hashes);
 
-        let strike_records = strike_utils.get_strikes(StrikeType::HandleForgotten, None).context("[handle_forgotten] Failed to get all strikes for HandleForgotten")?;
+        let strike_records = strike_utils.get_strikes(&StrikeType::HandleForgotten, None).context("[handle_forgotten] Failed to get all strikes for HandleForgotten")?;
         for strike_record in strike_records {
             match torrents_criteria.get(strike_record.hash()) {
                 // Check for stuff that doesn't meet criteria

@@ -38,7 +38,7 @@ impl Receiver {
     pub async fn get_torrents_criteria(torrents: &Vec<Torrent>, torrent_trackers: &HashMap<String, Vec<Tracker>>, config: &Config) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
         // Check torrents for criteria
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
-        for torrent in torrents.clone() {
+        for torrent in torrents {
             if let Some(trackers) = torrent_trackers.get(torrent.hash()) {
                 torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), Receiver::is_criteria_met(&torrent, trackers, &config).await));
             } else {

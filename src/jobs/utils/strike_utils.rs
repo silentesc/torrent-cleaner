@@ -80,9 +80,9 @@ impl StrikeUtils {
     /**
      * Get strikes
      */
-    pub fn get_strikes(&mut self, strike_type: StrikeType, hashes: Option<Vec<String>>) -> Result<Vec<StrikeRecord>, anyhow::Error> {
+    pub fn get_strikes(&mut self, strike_type: &StrikeType, hashes: Option<Vec<String>>) -> Result<Vec<StrikeRecord>, anyhow::Error> {
         // Build statement from sql query
-        let mut stmt = match hashes.clone() {
+        let mut stmt = match &hashes {
             Some(hashes) => {
                 let placeholders = std::iter::repeat("?").take(hashes.len()).collect::<Vec<&str>>().join(",");
                 let sql = format!("SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1 AND hash IN ({})", placeholders);
@@ -94,7 +94,7 @@ impl StrikeUtils {
                 .context("Failed to prepare get_strikes select")?,
         };
 
-        let rows = match hashes.clone() {
+        let rows = match hashes {
             // Execute query based on if hashes are passed or not
             Some(hashes) => {
                 let mut params: Vec<String> = vec![strike_type.to_string()];
@@ -136,9 +136,9 @@ impl StrikeUtils {
     /**
      * Strike multiple
      */
-    pub fn strike(&mut self, strike_type: StrikeType, hashes: Vec<String>) -> Result<(), anyhow::Error> {
+    pub fn strike(&mut self, strike_type: &StrikeType, hashes: Vec<String>) -> Result<(), anyhow::Error> {
         // Get current strike records
-        let strike_records = self.get_strikes(strike_type.clone(), Some(hashes.clone())).context("Failed to get strike types")?;
+        let strike_records = self.get_strikes(strike_type, Some(hashes.clone())).context("Failed to get strike types")?;
 
         // Open transaction
         let tx = self.conn.transaction().context("Failed to get transaction")?;
@@ -149,7 +149,7 @@ impl StrikeUtils {
             let strike_records_for_hash: Vec<StrikeRecord> = strike_records
                 .clone()
                 .into_iter()
-                .filter(|strike_record| strike_record.strike_type == strike_type.clone().to_string() && strike_record.hash == hash)
+                .filter(|strike_record| strike_record.strike_type == strike_type.to_string() && strike_record.hash == hash)
                 .collect();
             // This should never be the case due to the unique contraint but you never know
             if strike_records_for_hash.len() > 1 {

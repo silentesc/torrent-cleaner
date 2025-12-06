@@ -56,7 +56,7 @@ impl HandleOrphaned {
         Logger::info(format!("[handle_orphaned] {} paths have reached their strike limits", limit_reached_path_strings.len()).as_str());
 
         // Go through paths
-        for path_string in limit_reached_path_strings.clone() {
+        for path_string in &limit_reached_path_strings {
             let path = Path::new(path_string.as_str());
 
             // Log
@@ -91,7 +91,7 @@ impl HandleOrphaned {
         // Remove paths that reached limit and were handled from db
         strike_utils.delete(StrikeType::HandleOrphaned, limit_reached_path_strings)?;
 
-        let strike_records = strike_utils.get_strikes(StrikeType::HandleOrphaned, None).context("[handle_orphaned] Failed to get all strikes for HandleOrphaned")?;
+        let strike_records = strike_utils.get_strikes(&StrikeType::HandleOrphaned, None).context("[handle_orphaned] Failed to get all strikes for HandleOrphaned")?;
         for strike_record in strike_records {
             let strike_record_path = PathBuf::from_str(strike_record.hash()).context("[handle_orphaned] Failed to get PathBuf from strike_record")?;
             if torrent_paths.contains(&strike_record_path) {
