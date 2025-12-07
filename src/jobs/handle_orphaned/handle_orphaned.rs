@@ -68,7 +68,7 @@ impl HandleOrphaned {
                 .context("Failed to send notification")?;
 
             // Take action
-            ActionTaker::take_action(path, &self.config);
+            ActionTaker::take_action(path, &self.config)?;
         }
 
         // Clean db

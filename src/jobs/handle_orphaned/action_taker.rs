@@ -1,6 +1,10 @@
 use std::{fs, path::Path};
 
-use crate::{config::Config, jobs::enums::action_type::ActionType, logger::{enums::category::Category, logger::Logger}};
+use crate::{
+    config::Config,
+    jobs::enums::action_type::ActionType,
+    logger::{enums::category::Category, logger::Logger},
+};
 
 pub struct ActionTaker;
 
@@ -8,8 +12,9 @@ impl ActionTaker {
     /**
      * Take action
      */
-    pub fn take_action(path: &Path, config: &Config) {
-        match ActionType::from_str(config.jobs().handle_orphaned().action()) {
+    pub fn take_action(path: &Path, config: &Config) -> Result<(), anyhow::Error> {
+        let action_type = ActionType::from_str(config.jobs().handle_orphaned().action())?;
+        match action_type {
             ActionType::Test => {
                 Logger::info(Category::HandleOrphaned, "Action: Test");
             }
@@ -30,5 +35,7 @@ impl ActionTaker {
                 }
             }
         }
+
+        Ok(())
     }
 }

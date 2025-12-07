@@ -1,5 +1,3 @@
-use crate::logger::{enums::category::Category, logger::Logger};
-
 pub enum ActionType {
     Test,
     Stop,
@@ -7,15 +5,12 @@ pub enum ActionType {
 }
 
 impl ActionType {
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_str(s: &str) -> Result<Self, anyhow::Error> {
         match s.to_lowercase().as_str() {
-            "test" => ActionType::Test,
-            "stop" => ActionType::Stop,
-            "delete" => ActionType::Delete,
-            _ => {
-                Logger::warn(Category::Setup, format!("Unknown action type '{}', fallback to 'test'", s).as_str()); // TODO change to proper error response
-                ActionType::Test
-            }
+            "test" => Ok(ActionType::Test),
+            "stop" => Ok(ActionType::Stop),
+            "delete" => Ok(ActionType::Delete),
+            _ => Err(anyhow::anyhow!("Unknown action type '{}'", s)),
         }
     }
 }

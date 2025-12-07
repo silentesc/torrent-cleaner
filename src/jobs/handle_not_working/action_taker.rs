@@ -23,7 +23,8 @@ impl ActionTaker {
                 break;
             }
         }
-        match ActionType::from_str(config.jobs().handle_not_working().action()) {
+        let action_type = ActionType::from_str(config.jobs().handle_not_working().action())?;
+        match action_type {
             ActionType::Test => {
                 Logger::info(Category::HandleNotWorking, "Action: Test");
                 if is_any_not_meeting_criteria {
