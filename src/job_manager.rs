@@ -105,9 +105,16 @@ impl JobManager {
         });
     }
 
-    /* Getter */
-
-    pub fn job_lock(&self) -> Arc<Mutex<()>> {
-        self.job_lock.clone()
+    pub async fn wait_for_jobs_to_finish(&self) {
+        match self.job_lock.try_lock() {
+            Ok(_) => {
+                Logger::info(Category::JobManager, "No jobs are running");
+            }
+            Err(_) => {
+                Logger::warn(Category::JobManager, "A job is still running, waiting for it to finish...");
+                let _ = self.job_lock.lock().await;
+                Logger::info(Category::JobManager, "All jobs finished");
+            }
+        }
     }
 }

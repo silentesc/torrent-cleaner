@@ -1,9 +1,6 @@
-use std::env;
-
 use tokio::signal::unix::{SignalKind, signal};
 
 use crate::{
-    job_manager::JobManager,
     logger::{enums::category::Category, logger::Logger},
     setup::Setup,
 };
@@ -74,6 +71,7 @@ mod setup;
 
 #[tokio::main]
 async fn main() {
+    // Define signals
     let mut sigint = match signal(SignalKind::interrupt()) {
         Ok(sigint) => sigint,
         Err(e) => {
@@ -89,57 +87,14 @@ async fn main() {
         }
     };
 
-    // Setup logging
-    Setup::setup_logging();
-
-    const APP_NAME: &str = env!("CARGO_PKG_NAME");
-    const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-    Logger::info(Category::Setup, format!("Running {} {}", APP_NAME, APP_VERSION).as_str());
-
-    // Load env variables
-    let torrents_path = match env::var("TORRENTS_PATH") {
-        Ok(torrents_path) => torrents_path,
+    // Setup
+    let job_manager = match Setup::setup() {
+        Ok(job_manager) => job_manager,
         Err(e) => {
-            Logger::error(Category::Setup, format!("Failed to get TORRENTS_PATH env variable: {:#}", e).as_str());
+            Logger::error(Category::Setup, format!("{:#}", e).as_str());
             return;
         }
     };
-    let media_path = match env::var("MEDIA_PATH") {
-        Ok(media_path) => media_path,
-        Err(e) => {
-            Logger::error(Category::Setup, format!("Failed to get MEDIA_PATH env variable: {:#}", e).as_str());
-            return;
-        }
-    };
-
-    // Setup Config
-    let config = match Setup::get_config() {
-        Ok(config) => config,
-        Err(error_message) => {
-            Logger::error(Category::Setup, error_message.as_str());
-            return;
-        }
-    };
-    Logger::debug(Category::Setup, "Config has been loaded");
-
-    // Create strike utils table
-    if let Err(e) = Setup::check_create_db() {
-        Logger::error(Category::Setup, format!("Failed to check create db: {:#}", e).as_str());
-        return;
-    }
-
-    // Setup torrent_manager
-    let torrent_manager = match Setup::setup_torrent_manager(config.clone()) {
-        Ok(torrent_manager) => torrent_manager,
-        Err(e) => {
-            Logger::error(Category::Setup, format!("Failed to setup torrent_manager: {:#}", e).as_str());
-            return;
-        }
-    };
-
-    // Setup jobs
-    let job_manager = JobManager::new(config.clone(), torrent_manager.clone(), torrents_path.clone(), media_path.clone());
-    job_manager.setup();
 
     // Wait for signal
     tokio::select! {
@@ -151,8 +106,8 @@ async fn main() {
         }
     };
 
-    // Cleanup after shutdown
-    Logger::info(Category::Setup, "Checking if any jobs are running and waiting if there are any...");
-    let _ = job_manager.job_lock().lock().await;
-    Logger::info(Category::Setup, "All jobs are done, graceful shutdown was successful");
+    // Cleanup after signal
+    job_manager.wait_for_jobs_to_finish().await;
+
+    Logger::info(Category::Setup, "Graceful shutdown successful");
 }
