@@ -1,4 +1,4 @@
-use crate::logger::logger::Logger;
+use crate::logger::{enums::category::Category, logger::Logger};
 
 pub enum ActionType {
     Test,
@@ -13,7 +13,7 @@ impl ActionType {
             "stop" => ActionType::Stop,
             "delete" => ActionType::Delete,
             _ => {
-                Logger::warn(format!("Unknown action type '{}', fallback to 'test'", s).as_str());
+                Logger::warn(Category::Setup, format!("Unknown action type '{}', fallback to 'test'", s).as_str()); // TODO change to proper error response
                 ActionType::Test
             }
         }

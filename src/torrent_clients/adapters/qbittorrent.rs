@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::logger::logger::Logger;
+use crate::logger::{enums::category::Category, logger::Logger};
 use crate::torrent_clients::models::torrent::Torrent;
 use crate::torrent_clients::models::tracker::Tracker;
 
@@ -56,7 +56,7 @@ impl Qbittorrent {
                     } else if attempt < max_retries {
                         // Not logged in anymore (e.g. qbittorrent restarted)
                         if respone.status() == StatusCode::UNAUTHORIZED || respone.status() == StatusCode::FORBIDDEN {
-                            Logger::error(format!("Request to qbittorrent returned status code {}, trying to relogin", respone.status(),).as_str());
+                            Logger::error(Category::Qbittorrent, format!("Request to qbittorrent returned status code {}, trying to relogin", respone.status(),).as_str());
                             match self.login().await {
                                 Ok(_) => {}
                                 Err(e) => return Err(e),
@@ -66,6 +66,7 @@ impl Qbittorrent {
                         // Any other non-successful status code
                         else {
                             Logger::error(
+                                Category::Qbittorrent,
                                 format!(
                                     "Request to qbittorrent returned status code {}, waiting for {} seconds to try again: {}",
                                     respone.status(),
@@ -82,6 +83,7 @@ impl Qbittorrent {
                 // Request failed
                 Err(e) if attempt < max_retries => {
                     Logger::error(
+                        Category::Qbittorrent,
                         format!(
                             "Request to qbittorrent failed on try {}/{}, waiting for {} seconds to try again: {}",
                             attempt + 1,
@@ -113,13 +115,16 @@ impl Qbittorrent {
             match self.client.post(endpoint.clone()).form(&(params.clone())).send().await {
                 Ok(response) => match response.headers().get("set-cookie") {
                     Some(_) => {
-                        Logger::info("Logged in to qbittorrent");
+                        Logger::info(Category::Qbittorrent, "Logged in");
                         return Ok(());
                     }
                     None => return Err(anyhow::anyhow!("Failed to authenticate to qbittorrent")),
                 },
                 Err(_) if attempt < max_retries => {
-                    Logger::error(format!("Failed to login to qbittorrent on try {}/{}, waiting for {} seconds", attempt, max_retries, delay.as_secs(),).as_str());
+                    Logger::error(
+                        Category::Qbittorrent,
+                        format!("Failed to login to qbittorrent on try {}/{}, waiting for {} seconds", attempt, max_retries, delay.as_secs(),).as_str(),
+                    );
                     sleep(delay).await;
                     continue;
                 }
@@ -141,7 +146,7 @@ impl Qbittorrent {
 
         self.make_request(make_request_builder).await.context("Qbittorrent logout failed")?;
 
-        Logger::info("Logged out of qbittorrent");
+        Logger::info(Category::Qbittorrent, "Logged out");
 
         Ok(())
     }

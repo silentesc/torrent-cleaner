@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use crate::{config::Config, jobs::enums::action_type::ActionType, logger::logger::Logger};
+use crate::{config::Config, jobs::enums::action_type::ActionType, logger::{enums::category::Category, logger::Logger}};
 
 pub struct ActionTaker;
 
@@ -11,22 +11,22 @@ impl ActionTaker {
     pub fn take_action(path: &Path, config: &Config) {
         match ActionType::from_str(config.jobs().handle_orphaned().action()) {
             ActionType::Test => {
-                Logger::info("[handle_orphaned] Action: Test");
+                Logger::info(Category::HandleOrphaned, "Action: Test");
             }
             ActionType::Stop => {
-                Logger::warn("[handle_orphaned] Stop action not supported on orphaned files since files cannot be stopped");
+                Logger::warn(Category::HandleOrphaned, "Stop action not supported on orphaned files since files cannot be stopped");
             }
             ActionType::Delete => {
                 if path.is_file() {
                     if let Err(e) = fs::remove_file(path) {
-                        Logger::error(format!("[handle_orphaned] Error deleting orphaned file ({}): {:#}", path.display(), e).as_str());
+                        Logger::error(Category::HandleOrphaned, format!("Error deleting orphaned file ({}): {:#}", path.display(), e).as_str());
                     }
                 } else if path.is_dir() {
                     if let Err(e) = fs::remove_dir(path) {
-                        Logger::error(format!("[handle_orphaned] Error deleting orphaned dir ({}): {:#}", path.display(), e).as_str());
+                        Logger::error(Category::HandleOrphaned, format!("Error deleting orphaned dir ({}): {:#}", path.display(), e).as_str());
                     }
                 } else {
-                    Logger::warn(format!("[handle_orphaned] Path is neither file or dir: {}", path.display()).as_str());
+                    Logger::warn(Category::HandleOrphaned, format!("Path is neither file or dir: {}", path.display()).as_str());
                 }
             }
         }

@@ -5,7 +5,7 @@ use anyhow::Context;
 use crate::{
     config::Config,
     jobs::{enums::strike_type::StrikeType, utils::strike_utils::StrikeUtils},
-    logger::logger::Logger,
+    logger::{enums::category::Category, logger::Logger},
     torrent_clients::models::torrent::Torrent,
 };
 
@@ -20,10 +20,10 @@ impl Striker {
         let criteria_met_hashes: Vec<String> = torrents_criteria.values().filter(|(_, met)| *met).map(|(torrent, _)| torrent.hash().to_string()).collect();
 
         // Strike torrents that meet criteria
-        strike_utils.strike(&StrikeType::HandleNotWorking, criteria_met_hashes.clone()).context("[handle_not_working] Failed to strike hashes")?;
+        strike_utils.strike(&StrikeType::HandleNotWorking, criteria_met_hashes.clone()).context("Failed to strike hashes")?;
 
         // Get all strike stuff from the db for this job
-        let strike_records = strike_utils.get_strikes(&StrikeType::HandleNotWorking, Some(criteria_met_hashes)).context("[handle_not_working] Failed get strikes")?;
+        let strike_records = strike_utils.get_strikes(&StrikeType::HandleNotWorking, Some(criteria_met_hashes)).context("Failed get strikes")?;
 
         // Get torrents that reached the strike limits
         let mut limit_reached_torrents: Vec<Torrent> = Vec::new();
@@ -32,7 +32,10 @@ impl Striker {
                 if let Some(torrent_criteria) = torrents_criteria.get(strike_record.hash()) {
                     limit_reached_torrents.push(torrent_criteria.clone().0);
                 } else {
-                    Logger::warn(format!("[handle_not_working] Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str());
+                    Logger::warn(
+                        Category::HandleNotWorking,
+                        format!("Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str(),
+                    );
                 }
             }
         }

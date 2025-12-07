@@ -3,7 +3,7 @@ use chrono::{Local, TimeZone};
 use crate::{
     config::Config,
     jobs::utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField},
-    logger::logger::Logger,
+    logger::{enums::category::Category, logger::Logger},
     torrent_clients::{
         enums::tracker_status::TrackerStatus,
         models::{torrent::Torrent, tracker::Tracker},
@@ -43,7 +43,7 @@ impl Notifier {
             let tracker_status_str = match TrackerStatus::from_int(*tracker.status()) {
                 Ok(tracker_status) => tracker_status.to_string(),
                 Err(e) => {
-                    Logger::warn(e.as_str());
+                    Logger::warn(Category::HandleNotWorking, e.as_str());
                     tracker.status().to_string()
                 }
             };

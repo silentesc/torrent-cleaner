@@ -2,7 +2,11 @@ use std::env;
 
 use tokio::signal::unix::{SignalKind, signal};
 
-use crate::{job_manager::JobManager, logger::logger::Logger, setup::Setup};
+use crate::{
+    job_manager::JobManager,
+    logger::{enums::category::Category, logger::Logger},
+    setup::Setup,
+};
 
 mod torrent_clients {
     pub mod torrent_manager;
@@ -26,8 +30,8 @@ mod torrent_clients {
 mod logger {
     pub mod logger;
     pub mod enums {
-        pub mod log_level;
         pub mod category;
+        pub mod log_level;
     }
 }
 
@@ -73,14 +77,14 @@ async fn main() {
     let mut sigint = match signal(SignalKind::interrupt()) {
         Ok(sigint) => sigint,
         Err(e) => {
-            Logger::error(format!("Failed to setup sigint signal: {:#}", e).as_str());
+            Logger::error(Category::Setup, format!("Failed to setup sigint signal: {:#}", e).as_str());
             return;
         }
     };
     let mut sigterm = match signal(SignalKind::terminate()) {
         Ok(sigterm) => sigterm,
         Err(e) => {
-            Logger::error(format!("Failed to setup sigterm signal: {:#}", e).as_str());
+            Logger::error(Category::Setup, format!("Failed to setup sigterm signal: {:#}", e).as_str());
             return;
         }
     };
@@ -90,20 +94,20 @@ async fn main() {
 
     const APP_NAME: &str = env!("CARGO_PKG_NAME");
     const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-    Logger::info(format!("Running {} {}", APP_NAME, APP_VERSION).as_str());
+    Logger::info(Category::Setup, format!("Running {} {}", APP_NAME, APP_VERSION).as_str());
 
     // Load env variables
     let torrents_path = match env::var("TORRENTS_PATH") {
         Ok(torrents_path) => torrents_path,
         Err(e) => {
-            Logger::error(format!("Failed to get TORRENTS_PATH env variable: {:#}", e).as_str());
+            Logger::error(Category::Setup, format!("Failed to get TORRENTS_PATH env variable: {:#}", e).as_str());
             return;
         }
     };
     let media_path = match env::var("MEDIA_PATH") {
         Ok(media_path) => media_path,
         Err(e) => {
-            Logger::error(format!("Failed to get MEDIA_PATH env variable: {:#}", e).as_str());
+            Logger::error(Category::Setup, format!("Failed to get MEDIA_PATH env variable: {:#}", e).as_str());
             return;
         }
     };
@@ -112,15 +116,15 @@ async fn main() {
     let config = match Setup::get_config() {
         Ok(config) => config,
         Err(error_message) => {
-            Logger::error(error_message.as_str());
+            Logger::error(Category::Setup, error_message.as_str());
             return;
         }
     };
-    Logger::debug("Config has been loaded");
+    Logger::debug(Category::Setup, "Config has been loaded");
 
     // Create strike utils table
     if let Err(e) = Setup::check_create_db() {
-        Logger::error(format!("Failed to check create db: {:#}", e).as_str());
+        Logger::error(Category::Setup, format!("Failed to check create db: {:#}", e).as_str());
         return;
     }
 
@@ -128,7 +132,7 @@ async fn main() {
     let torrent_manager = match Setup::setup_torrent_manager(config.clone()) {
         Ok(torrent_manager) => torrent_manager,
         Err(e) => {
-            Logger::error(format!("Failed to setup torrent_manager: {:#}", e).as_str());
+            Logger::error(Category::Setup, format!("Failed to setup torrent_manager: {:#}", e).as_str());
             return;
         }
     };
@@ -140,15 +144,15 @@ async fn main() {
     // Wait for signal
     tokio::select! {
         _ = sigint.recv() => {
-            Logger::info("Received sigint");
+            Logger::info(Category::Setup, "Received sigint");
         }
         _ = sigterm.recv() => {
-            Logger::info("Received sigterm");
+            Logger::info(Category::Setup, "Received sigterm");
         }
     };
 
     // Cleanup after shutdown
-    Logger::info("Checking if any jobs are running and waiting if there are any...");
+    Logger::info(Category::Setup, "Checking if any jobs are running and waiting if there are any...");
     let _ = job_manager.job_lock().lock().await;
-    Logger::info("All jobs are done, graceful shutdown was successful");
+    Logger::info(Category::Setup, "All jobs are done, graceful shutdown was successful");
 }

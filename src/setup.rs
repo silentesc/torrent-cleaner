@@ -3,7 +3,7 @@ use std::{env, fs, path::Path, sync::Arc};
 use crate::{
     config::Config,
     jobs::utils::strike_utils::StrikeUtils,
-    logger::{enums::log_level::LogLevel, logger::Logger},
+    logger::{enums::{category::Category, log_level::LogLevel}, logger::Logger},
     torrent_clients::{adapters::qbittorrent::Qbittorrent, enums::any_client::AnyClient, torrent_manager::TorrentManager},
 };
 
@@ -14,12 +14,12 @@ impl Setup {
         let log_level = match env::var("LOG_LEVEL") {
             Ok(log_level) => log_level,
             Err(e) => {
-                Logger::error(format!("Failed to get log_level env variable, using default (info): {:#}", e).as_str());
+                Logger::error(Category::Setup, format!("Failed to get log_level env variable, using default (info): {:#}", e).as_str());
                 LogLevel::Info.to_string()
             }
         };
         Logger::set_log_level(LogLevel::from_string(log_level.as_str()));
-        Logger::debug("Logger has been loaded");
+        Logger::debug(Category::Setup, "Logger has been loaded");
     }
 
     pub fn get_config() -> Result<Config, String> {
@@ -43,7 +43,7 @@ impl Setup {
                 config = match serde_json::from_str(&contents) {
                     Ok(config) => config,
                     Err(e) => {
-                        Logger::error(format!("Failed to create config object from config file contents, using default config instead: {:#}", e).as_str());
+                        Logger::error(Category::Setup, format!("Failed to create config object from config file contents, using default config instead: {:#}", e).as_str());
                         Config::default()
                     }
                 };

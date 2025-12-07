@@ -3,7 +3,11 @@ use std::{fs, path::Path};
 use anyhow::Context;
 use chrono::{DateTime, Local};
 
-use crate::{config::Config, jobs::utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField}, logger::logger::Logger};
+use crate::{
+    config::Config,
+    jobs::utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField},
+    logger::{enums::category::Category, logger::Logger},
+};
 
 pub struct Notifier;
 
@@ -16,9 +20,9 @@ impl Notifier {
             return Ok(());
         }
 
-        let metadata = fs::metadata(path).context("[handle_orphaned] Failed to get file metadata")?;
+        let metadata = fs::metadata(path).context("Failed to get file metadata")?;
         let file_size_gb_string = format!("{:.2}GB", (metadata.len() / 1000 / 1000) as f32 / 1000.0);
-        let modified_time = metadata.modified().context("[handle_orphaned] Failed to get file modified SystemTime")?;
+        let modified_time = metadata.modified().context("Failed to get file modified SystemTime")?;
 
         let modified_time: DateTime<Local> = modified_time.into();
         let modified_time: String = modified_time.format("%Y-%m-%d %H:%M:%S").to_string();
@@ -28,7 +32,7 @@ impl Notifier {
         } else if path.is_dir() {
             "Found orphaned **folder**"
         } else {
-            Logger::warn(format!("Path is not file or folder: {}", path.display()).as_str());
+            Logger::warn(Category::HandleOrphaned, format!("Path is not file or folder: {}", path.display()).as_str());
             "Found orphaned path which isn't file or folder?"
         };
 

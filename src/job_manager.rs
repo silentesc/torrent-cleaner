@@ -5,7 +5,7 @@ use tokio::{sync::Mutex, time::sleep};
 use crate::{
     config::Config,
     jobs::{handle_forgotten::handle_forgotten::HandleForgotten, handle_not_working::handle_not_working::HandleNotWorking, handle_orphaned::handle_orphaned::HandleOrphaned},
-    logger::logger::Logger,
+    logger::{enums::category::Category, logger::Logger},
     torrent_clients::torrent_manager::TorrentManager,
 };
 
@@ -40,7 +40,7 @@ impl JobManager {
             handle_forgotten.clone(),
             |handler| async move {
                 if let Err(e) = handler.run().await {
-                    Logger::error(format!("[job_manager] Failed to run handle_forgotten: {:#}", e).as_str());
+                    Logger::error(Category::JobManager, format!("Failed to run handle_forgotten: {:#}", e).as_str());
                 }
             },
         );
@@ -52,7 +52,7 @@ impl JobManager {
             handle_not_working.clone(),
             |handler| async move {
                 if let Err(e) = handler.run().await {
-                    Logger::error(format!("[job_manager] Failed to run handle_not_working: {:#}", e).as_str());
+                    Logger::error(Category::JobManager, format!("Failed to run handle_not_working: {:#}", e).as_str());
                 }
             },
         );
@@ -64,7 +64,7 @@ impl JobManager {
             handle_orphaned.clone(),
             |handler| async move {
                 if let Err(e) = handler.run().await {
-                    Logger::error(format!("[job_manager] Failed to run handle_orphaned: {:#}", e).as_str());
+                    Logger::error(Category::JobManager, format!("Failed to run handle_orphaned: {:#}", e).as_str());
                 }
             },
         );
@@ -83,7 +83,7 @@ impl JobManager {
         let lock = self.job_lock.clone();
 
         tokio::spawn(async move {
-            Logger::info(format!("[job_manager] Set up {}, next run in {} hours", job_name, interval_hours).as_str());
+            Logger::info(Category::JobManager, format!("Set up {}, next run in {} hours", job_name, interval_hours).as_str());
 
             // Test/Sleep
             let mut interval_hours = interval_hours;
@@ -96,9 +96,9 @@ impl JobManager {
             loop {
                 {
                     let _guard = lock.lock().await;
-                    Logger::info(format!("[job_manager] Starting {}...", job_name).as_str());
+                    Logger::info(Category::JobManager, format!("Starting {}...", job_name).as_str());
                     job_fn(handler.clone()).await;
-                    Logger::info(format!("[job_manager] {} finished, next run in {} hours", job_name, interval_hours).as_str());
+                    Logger::info(Category::JobManager, format!("{} finished, next run in {} hours", job_name, interval_hours).as_str());
                 }
                 sleep(Duration::from_hours(interval_hours as u64)).await;
             }

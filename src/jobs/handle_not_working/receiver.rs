@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::{
     config::Config,
-    logger::logger::Logger,
+    logger::{enums::category::Category, logger::Logger},
     torrent_clients::{
         enums::{torrent_state::TorrentState, tracker_status::TrackerStatus},
         models::{torrent::Torrent, tracker::Tracker},
@@ -25,7 +25,7 @@ impl Receiver {
             let trackers = torrent_manager
                 .get_torrent_trackers(torrent.hash())
                 .await
-                .context(format!("[handle_not_working] Failed to get trackers for torrent: ({}) {}", torrent.hash(), torrent.name()))?;
+                .context(format!("Failed to get trackers for torrent: ({}) {}", torrent.hash(), torrent.name()))?;
             torrent_trackers.insert(torrent.hash().to_string(), trackers);
         }
 
@@ -42,7 +42,7 @@ impl Receiver {
             if let Some(trackers) = torrent_trackers.get(torrent.hash()) {
                 torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), Receiver::is_criteria_met(&torrent, trackers, &config).await));
             } else {
-                Logger::warn(format!("[handle_not_working] Cannot get tracker for torrent: ({}) {}", torrent.hash(), torrent.name()).as_str());
+                Logger::warn(Category::HandleNotWorking, format!("Cannot get tracker for torrent: ({}) {}", torrent.hash(), torrent.name()).as_str());
             }
         }
 
@@ -55,12 +55,12 @@ impl Receiver {
     async fn is_criteria_met(torrent: &Torrent, trackers: &Vec<Tracker>, config: &Config) -> bool {
         // Uncompleted
         if *torrent.completion_on() == -1 {
-            Logger::trace(format!("[handle_not_working] Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),).as_str());
+            Logger::trace(Category::HandleNotWorking, format!("Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),).as_str());
             return false;
         }
         // Protection tag
         if torrent.tags().contains(config.jobs().handle_not_working().protection_tag()) {
-            Logger::trace(format!("[handle_not_working] Torrent doesn't meet criteria (protection tag): ({}) {}", torrent.hash(), torrent.name(),).as_str());
+            Logger::trace(Category::HandleNotWorking, format!("Torrent doesn't meet criteria (protection tag): ({}) {}", torrent.hash(), torrent.name(),).as_str());
             return false;
         }
         // Stopped torrent
@@ -72,7 +72,7 @@ impl Receiver {
         ]
         .contains(&torrent.state().to_string())
         {
-            Logger::trace(format!("[handle_not_working] Torrent doesn't meet criteria (stopped): ({}) {}", torrent.hash(), torrent.name(),).as_str());
+            Logger::trace(Category::HandleNotWorking, format!("Torrent doesn't meet criteria (stopped): ({}) {}", torrent.hash(), torrent.name(),).as_str());
             return false;
         }
         // Working trackers
@@ -80,14 +80,14 @@ impl Receiver {
             match TrackerStatus::from_int(*tracker.status()) {
                 Ok(tracker_status) => {
                     if matches!(tracker_status, TrackerStatus::Working) {
-                        Logger::trace(format!("[handle_not_working] Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}", torrent.hash(), torrent.name(),).as_str());
+                        Logger::trace(Category::HandleNotWorking, format!("Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}", torrent.hash(), torrent.name(),).as_str());
                         return false;
                     }
                 }
                 Err(e) => {
-                    Logger::error(
+                    Logger::error(Category::HandleNotWorking, 
                         format!(
-                            "[handle_not_working] Torrent doesn't meet criteria (error while getting torrent tracker status): ({}) {}: {}",
+                            "Torrent doesn't meet criteria (error while getting torrent tracker status): ({}) {}: {}",
                             torrent.hash(),
                             torrent.name(),
                             e,
@@ -99,7 +99,7 @@ impl Receiver {
             }
         }
         // All good
-        Logger::trace(format!("[handle_not_working] Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
+        Logger::trace(Category::HandleNotWorking, format!("Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
         true
     }
 }
