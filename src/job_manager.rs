@@ -94,13 +94,16 @@ impl JobManager {
             }
 
             loop {
+                let start_time = std::time::Instant::now();
+                Logger::info(Category::JobManager, format!("Starting {}...", job_name).as_str());
                 {
                     let _guard = lock.lock().await;
-                    Logger::info(Category::JobManager, format!("Starting {}...", job_name).as_str());
                     job_fn(handler.clone()).await;
-                    Logger::info(Category::JobManager, format!("{} finished, next run in {} hours", job_name, interval_hours).as_str());
                 }
-                sleep(Duration::from_hours(interval_hours as u64)).await;
+                let elapsed = start_time.elapsed();
+                let sleep_duration = Duration::from_hours(interval_hours as u64).saturating_sub(elapsed);
+                Logger::info(Category::JobManager, format!("{} finished in {:.2} seconds, next run in {} hours", job_name, elapsed.as_secs_f32(), interval_hours).as_str());
+                sleep(sleep_duration).await;
             }
         });
     }
