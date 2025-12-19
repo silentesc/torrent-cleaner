@@ -94,7 +94,7 @@ impl HandleOrphaned {
         let strike_records = strike_utils.get_strikes(&StrikeType::HandleOrphaned, None).context("Failed to get all strikes for HandleOrphaned")?;
         for strike_record in strike_records {
             let strike_record_path = PathBuf::from_str(strike_record.hash()).context("Failed to get PathBuf from strike_record")?;
-            if torrent_paths.contains(&strike_record_path) {
+            if !torrent_paths.contains(&strike_record_path) {
                 hashes_to_remove.push(strike_record.hash().to_string());
             }
         }
