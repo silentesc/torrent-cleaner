@@ -38,7 +38,7 @@
 ## Docker Compose
 ```yaml
 torrent-cleaner:
-    image: silentesc/torrent-cleaner:stable
+    image: silentesc/torrent-cleaner:stable # Explanation of docker tags below
     container_name: torrent-cleaner
     environment:
       - PUID=1000
@@ -52,6 +52,13 @@ torrent-cleaner:
       - ./data:/data
     restart: unless-stopped
 ```
+
+## Docker Tags
+| Tag | Description |
+| --- | --- |
+| `stable` | Stable release (recommended) |
+| `develop` | Untested or beta version |
+| version (e.g. `v1.0.0`) | Stable release (e.g. for pinning or switching back) |
 
 ## Config
 The config will create itself on first start with recommended settings, but still needs to be configured for notifications and the torrent client
