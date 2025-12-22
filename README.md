@@ -1,5 +1,3 @@
-# IN ACTIVE DEVELOPMENT, USE AT OWN RISK
-
 # Features
 - Striking (action only taken on x strikes over y **continuous** days)
 - Protection Tag individually for every job
@@ -40,7 +38,7 @@
 ## Docker Compose
 ```yaml
 torrent-cleaner:
-    image: torrent-cleaner # Will be released on docker hub soon
+    image: silentesc/torrent-cleaner:stable
     container_name: torrent-cleaner
     environment:
       - PUID=1000
