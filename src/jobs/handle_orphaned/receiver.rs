@@ -11,10 +11,10 @@ use crate::{
 pub struct Receiver;
 
 impl Receiver {
-    pub async fn get_orphaned_path_strings(torrent_paths: &HashSet<PathBuf>, torrents_path: &str) -> Result<Vec<String>, anyhow::Error> {
+    pub async fn get_orphaned_path_strings(torrent_paths: &HashSet<PathBuf>, torrents_path: &str) -> Result<HashSet<String>, anyhow::Error> {
         // Get paths not present in any torrents
         Logger::debug(Category::HandleOrphaned, "Getting orphaned paths (files/folders that are not part of any torrent)...");
-        let mut orphaned_path_strings: Vec<String> = Vec::new();
+        let mut orphaned_path_strings: HashSet<String> = HashSet::new();
         for entry in WalkDir::new(torrents_path) {
             let entry_result = entry.context("Failed to get entry_result")?;
             // Check for file
@@ -29,7 +29,7 @@ impl Receiver {
                         return Err(anyhow::anyhow!("Failed to convert PathBuf into string: {}", os_string.display()));
                     }
                 };
-                orphaned_path_strings.push(path_string);
+                orphaned_path_strings.insert(path_string);
             }
             // Check for empty dir
             else if entry_result.file_type().is_dir() {
@@ -47,7 +47,7 @@ impl Receiver {
                         return Err(anyhow::anyhow!("Failed to convert PathBuf into string: {}", os_string.display()));
                     }
                 };
-                orphaned_path_strings.push(path_string);
+                orphaned_path_strings.insert(path_string);
             }
         }
         Logger::debug(Category::HandleOrphaned, format!("Received {} orphaned paths", orphaned_path_strings.len()).as_str());

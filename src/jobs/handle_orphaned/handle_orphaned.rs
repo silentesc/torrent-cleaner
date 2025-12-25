@@ -1,9 +1,4 @@
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-    str::FromStr,
-    sync::Arc,
-};
+use std::{collections::HashSet, path::Path, sync::Arc};
 
 use anyhow::Context;
 use reqwest::Url;
@@ -44,13 +39,13 @@ impl HandleOrphaned {
         let torrent_paths = Receiver::get_torrent_paths(self.torrent_manager.clone()).await?;
 
         // Get orphaned_path_strings
-        let orphaned_path_strings: Vec<String> = Receiver::get_orphaned_path_strings(&torrent_paths, &self.torrents_path).await?;
+        let orphaned_path_strings = Receiver::get_orphaned_path_strings(&torrent_paths, &self.torrents_path).await?;
 
         let mut strike_utils = StrikeUtils::new()?;
 
         // Strike orphaned paths
         Logger::debug(Category::HandleOrphaned, "Striking orphaned paths...");
-        let limit_reached_path_strings = Striker::strike_paths(&mut strike_utils, orphaned_path_strings, &self.config)?;
+        let limit_reached_path_strings = Striker::strike_paths(&mut strike_utils, orphaned_path_strings.iter().cloned().collect(), &self.config)?;
         Logger::debug(Category::HandleOrphaned, "Done striking paths");
 
         Logger::info(Category::HandleOrphaned, format!("{} paths have reached their strike limits", limit_reached_path_strings.len()).as_str());
@@ -73,7 +68,7 @@ impl HandleOrphaned {
 
         // Clean db
         Logger::debug(Category::HandleOrphaned, "Cleaning db...");
-        self.clean_db(&mut strike_utils, &torrent_paths, limit_reached_path_strings)?;
+        self.clean_db(&mut strike_utils, &orphaned_path_strings, limit_reached_path_strings)?;
         Logger::debug(Category::HandleOrphaned, "Cleaned db");
 
         // Logout
@@ -85,7 +80,7 @@ impl HandleOrphaned {
     /**
      * Clean db
      */
-    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrent_paths: &HashSet<PathBuf>, limit_reached_path_strings: Vec<String>) -> Result<(), anyhow::Error> {
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, orphaned_path_strings: &HashSet<String>, limit_reached_path_strings: Vec<String>) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
 
         // Paths that reached limit and were handled from db
@@ -93,8 +88,8 @@ impl HandleOrphaned {
 
         let strike_records = strike_utils.get_strikes(&StrikeType::HandleOrphaned, None).context("Failed to get all strikes for HandleOrphaned")?;
         for strike_record in strike_records {
-            let strike_record_path = PathBuf::from_str(strike_record.hash()).context("Failed to get PathBuf from strike_record")?;
-            if !torrent_paths.contains(&strike_record_path) {
+            // Paths that not orphaned anymore
+            if !orphaned_path_strings.contains(strike_record.hash()) {
                 hashes_to_remove.push(strike_record.hash().to_string());
             }
         }
