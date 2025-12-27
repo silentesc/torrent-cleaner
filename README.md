@@ -11,18 +11,18 @@
 - HandleForgotten (handle torrents that are not present in the media dir):
   - All features from above, plus:
     - Minimum seeding days (action only taken if torrent was **actively seeding** for x days)
-    - Supported actions:
-      - test (Log, Discord Notification)
-      - stop (Stop torrent, Log, Discord Notification)
-      - delete (Delete torrent (and files if possible), Log, Discord Notification)
+  - Supported actions:
+    - test (Log, Discord Notification)
+    - stop (Stop torrent, Log, Discord Notification)
+    - delete (Delete torrent (and files if possible), Log, Discord Notification)
 - HandleNotWorking (handle torrents that have no working trackers)
   - All features from above, plus:
     - If there is a working tracker, the striking process is reset
-    - Supported actions:
-      - test (Log, Discord Notification)
-      - stop (Stop torrent, Log, Discord Notification)
-      - delete (Delete torrent (and files if possible), Log, Discord Notification)
-- HandleOrphaned (handle files/folders that are not used by any torrent)
+  - Supported actions:
+    - test (Log, Discord Notification)
+    - stop (Stop torrent, Log, Discord Notification)
+    - delete (Delete torrent (and files if possible), Log, Discord Notification)
+- HandleOrphaned (handle files/folders that are not used by any torrent, no matter if they are also in the media folder)
   - All features from above
   - Supported actions:
       - test (Log, Discord Notification)
@@ -45,13 +45,22 @@ torrent-cleaner:
       - PGID=1000
       - TZ=Etc/UTC
       - TORRENTS_PATH=/data/torrents
-      - MEDIA_PATH=/data/media
       - LOG_LEVEL=INFO # TRACE, DEBUG, INFO, WARN, ERROR
     volumes:
       - ./config/torrent-cleaner:/config
-      - ./data:/data
+      - ./data/torrents:/data/torrents
     restart: unless-stopped
 ```
+
+### Volume mapping and TORRENTS_PATH
+When torrent-cleaner communicates with qBittorrent to get paths of torrents, qBittorrent gives the path it knows. For example, if you mount qBittorrent to `./data:/data` and your torrents are in `./data/torrents`, qBittorrent will tell torrent-cleaner `/data/torrents`. torrent-cleaner has to know that. Because if qBittorrent knows `/data/torrents` and torrent-cleaner only knows `/torrents`, it is confused and cannot find any files. Thats what TORRENTS_PATH is for.
+#### Examples:
+| Your torrents folder | qBittorrent volume mapping | torrent-cleaner volume mapping | TORRENTS_PATH |
+| --- | --- | --- | --- |
+| ./torrents | ./torrents:/torrents | ./torrents:/torrents | /torrents |
+| ./data/torrents | ./data/torrents:/data/torrents | ./data/torrents:/data/torrents | /data/torrents |
+| ./data/torrents | ./data:/data | ./data/torrents:/data/torrents | /data/torrents |
+| ./torrents/qbittorrent | ./torrents/qbittorrent:/torrents/qbittorrent | ./torrents/qbittorrent:/torrents/qbittorrent | /torrents/qbittorrent |qBittorrent
 
 ## Docker Tags
 | Tag | Description |
