@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Context;
 
@@ -15,22 +12,25 @@ use crate::{
 pub struct Receiver;
 
 impl Receiver {
-    pub async fn get_torrents_criteria(torrent_manager: Arc<TorrentManager>, config: &Config, media_folder_path: &String) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
+    pub async fn get_torrents_criteria(torrent_manager: Arc<TorrentManager>, config: &Config, torrents_path: &String) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
         // Get torrents from torrent client
         Logger::debug(Category::HandleForgotten, "Getting torrents...");
         let torrents = torrent_manager.get_all_torrents().await.context("Failed to get all torrents")?;
         Logger::debug(Category::HandleForgotten, format!("Received {} torrents", torrents.len()).as_str());
 
-        // Get inodes present in the media folder
-        Logger::debug(Category::HandleForgotten, "Getting inodes of media files...");
-        let media_file_inodes = FileUtils::get_media_file_inodes(media_folder_path)?;
-        Logger::debug(Category::HandleForgotten, format!("Received inodes of {} files", media_file_inodes.len()).as_str());
+        // Get known hardlinks
+        Logger::debug(Category::HandleForgotten, "Getting known torrent hardlinks...");
+        let known_hardlinks: HashMap<u64, u64> = FileUtils::get_known_hardlinks(torrents_path)?;
+        Logger::debug(
+            Category::HandleForgotten,
+            format!("Found {} unique files ({} total) in torrent folder", known_hardlinks.len(), known_hardlinks.values().sum::<u64>()).as_str(),
+        );
 
         // Check torrents for criteria
         Logger::debug(Category::HandleForgotten, "Checking torrents for criteria...");
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
         for torrent in &torrents {
-            torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), Receiver::is_criteria_met(&torrent, &media_file_inodes, config)));
+            torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), Receiver::is_criteria_met(&torrent, &known_hardlinks, config)));
         }
         Logger::debug(Category::HandleForgotten, "Done checking torrents for criteria");
 
@@ -40,7 +40,7 @@ impl Receiver {
     /**
      * Is criteria met
      */
-    fn is_criteria_met(torrent: &Torrent, media_file_inodes: &HashSet<u64>, config: &Config) -> bool {
+    fn is_criteria_met(torrent: &Torrent, known_hardlinks: &HashMap<u64, u64>, config: &Config) -> bool {
         // Uncompleted
         if *torrent.completion_on() == -1 {
             Logger::trace(Category::HandleForgotten, format!("Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),).as_str());
@@ -68,12 +68,12 @@ impl Receiver {
             return false;
         }
         // Media library
-        match FileUtils::is_torrent_in_media_library(&torrent.content_path(), media_file_inodes) {
-            Ok(is_torrent_in_media_library) => {
-                if is_torrent_in_media_library {
+        match FileUtils::has_external_hardlinks(known_hardlinks, torrent.content_path()) {
+            Ok(has_torrent_external_hardlinks) => {
+                if has_torrent_external_hardlinks {
                     Logger::trace(
                         Category::HandleForgotten,
-                        format!("Torrent doesn't meet criteria (has hardlink in media library): ({}) {}", torrent.hash(), torrent.name(),).as_str(),
+                        format!("Torrent doesn't meet criteria (has external hardlink): ({}) {}", torrent.hash(), torrent.name(),).as_str(),
                     );
                     return false;
                 }
@@ -81,12 +81,13 @@ impl Receiver {
             Err(e) => {
                 Logger::error(
                     Category::HandleForgotten,
-                    format!("Torrent doesn't meet criteria (error while checking if hardlink in media library): ({}) {}: {:#}", torrent.hash(), torrent.name(), e,).as_str(),
+                    format!("Torrent doesn't meet criteria (error while checking if has external hardlink): ({}) {}: {:#}", torrent.hash(), torrent.name(), e,).as_str(),
                 );
                 return false;
             }
         }
-        Logger::trace(Category::HandleForgotten, format!("Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
+
+        Logger::trace(Category::HandleForgotten, format!("Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name(),).as_str());
         true
     }
 }

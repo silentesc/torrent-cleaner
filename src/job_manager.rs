@@ -13,23 +13,21 @@ pub struct JobManager {
     config: Config,
     torrent_manager: Arc<TorrentManager>,
     torrents_path: String,
-    media_path: String,
     job_lock: Arc<Mutex<()>>,
 }
 
 impl JobManager {
-    pub fn new(config: Config, torrent_manager: Arc<TorrentManager>, torrents_path: String, media_path: String) -> Self {
+    pub fn new(config: Config, torrent_manager: Arc<TorrentManager>, torrents_path: String) -> Self {
         Self {
             config,
             torrent_manager,
-            media_path,
             torrents_path,
             job_lock: Arc::new(Mutex::new(())),
         }
     }
 
     pub fn setup(&self) {
-        let handle_forgotten = Arc::new(HandleForgotten::new(self.torrent_manager.clone(), self.media_path.clone(), self.config.clone()));
+        let handle_forgotten = Arc::new(HandleForgotten::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
         let handle_not_working = Arc::new(HandleNotWorking::new(self.torrent_manager.clone(), self.config.clone()));
         let handle_orphaned = Arc::new(HandleOrphaned::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
 
