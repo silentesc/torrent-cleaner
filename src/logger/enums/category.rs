@@ -7,7 +7,6 @@ pub enum Category {
     HandleForgotten,
     HandleNotWorking,
     HandleOrphaned,
-    FileUtils,
 }
 
 impl Category {
@@ -21,7 +20,6 @@ impl Category {
             Category::HandleForgotten => String::from("handle_forgotten"),
             Category::HandleNotWorking => String::from("handle_not_working"),
             Category::HandleOrphaned => String::from("handle_orphaned"),
-            Category::FileUtils => String::from("file_utils"),
         }
     }
 }
