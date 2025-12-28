@@ -72,7 +72,7 @@ impl Receiver {
             return Ok(false);
         }
 
-        Logger::trace(Category::HandleForgotten, format!("Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
+        Logger::debug(Category::HandleForgotten, format!("Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
 
         Ok(true)
     }
