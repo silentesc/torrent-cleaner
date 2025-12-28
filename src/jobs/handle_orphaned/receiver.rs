@@ -65,6 +65,18 @@ impl Receiver {
         Logger::debug(Category::HandleOrphaned, "Getting all paths in all torrents...");
         let mut torrent_paths: HashSet<PathBuf> = HashSet::new();
         for torrent in torrents {
+            if torrent.content_path().is_empty() {
+                Logger::warn(
+                    Category::HandleOrphaned,
+                    format!(
+                        "Ignoring torrent with no content path (maybe due to torrent still checking metadata, missing/moving files, I/O errors, Permission errors): ({}) {}",
+                        torrent.hash(),
+                        torrent.name()
+                    )
+                    .as_str(),
+                );
+                continue;
+            }
             for entry in WalkDir::new(torrent.content_path()) {
                 let entry_result = entry.context("Failed to get entry_result")?;
                 // Check for file
