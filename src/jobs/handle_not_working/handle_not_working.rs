@@ -47,7 +47,7 @@ impl HandleNotWorking {
 
         // Get torrent trackers
         Logger::debug(Category::HandleNotWorking, "Getting torrent trackers...");
-        let torrent_trackers: HashMap<String, Vec<Tracker>> = Receiver::get_torrent_trackers(self.torrent_manager.clone(), &torrents).await?;
+        let torrent_trackers: HashMap<String, Vec<Tracker>> = Receiver::get_torrent_trackers(self.torrent_manager.clone(), &torrents, &self.config).await?;
         Logger::debug(Category::HandleNotWorking, "Received torrent trackers");
 
         // Get torrents from torrent client with criteria
