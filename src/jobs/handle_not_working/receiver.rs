@@ -18,14 +18,22 @@ impl Receiver {
     /**
      * Get torrent trackers
      */
-    pub async fn get_torrent_trackers(torrent_manager: Arc<TorrentManager>, torrents: &Vec<Torrent>) -> Result<HashMap<String, Vec<Tracker>>, anyhow::Error> {
+    pub async fn get_torrent_trackers(torrent_manager: Arc<TorrentManager>, torrents: &Vec<Torrent>, config: &Config) -> Result<HashMap<String, Vec<Tracker>>, anyhow::Error> {
         // Get trackers
         let mut torrent_trackers: HashMap<String, Vec<Tracker>> = HashMap::new();
         for torrent in torrents {
-            let trackers = torrent_manager
+            let trackers: Vec<Tracker> = torrent_manager
                 .get_torrent_trackers(torrent.hash())
                 .await
-                .context(format!("Failed to get trackers for torrent: ({}) {}", torrent.hash(), torrent.name()))?;
+                .context(format!("Failed to get trackers for torrent: ({}) {}", torrent.hash(), torrent.name()))?
+                .into_iter()
+                .filter(|tracker| match tracker.url() {
+                    "** [DHT] **" if *config.jobs().handle_not_working().ignore_dht() => false,
+                    "** [PeX] **" if *config.jobs().handle_not_working().ignore_pex() => false,
+                    "** [LSD] **" if *config.jobs().handle_not_working().ignore_lsd() => false,
+                    _ => true,
+                })
+                .collect();
             torrent_trackers.insert(torrent.hash().to_string(), trackers);
         }
 
@@ -80,19 +88,17 @@ impl Receiver {
             match TrackerStatus::from_int(*tracker.status()) {
                 Ok(tracker_status) => {
                     if matches!(tracker_status, TrackerStatus::Working) {
-                        Logger::trace(Category::HandleNotWorking, format!("Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}", torrent.hash(), torrent.name(),).as_str());
+                        Logger::trace(
+                            Category::HandleNotWorking,
+                            format!("Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}", torrent.hash(), torrent.name(),).as_str(),
+                        );
                         return false;
                     }
                 }
                 Err(e) => {
-                    Logger::error(Category::HandleNotWorking, 
-                        format!(
-                            "Torrent doesn't meet criteria (error while getting torrent tracker status): ({}) {}: {}",
-                            torrent.hash(),
-                            torrent.name(),
-                            e,
-                        )
-                        .as_str(),
+                    Logger::error(
+                        Category::HandleNotWorking,
+                        format!("Torrent doesn't meet criteria (error while getting torrent tracker status): ({}) {}: {}", torrent.hash(), torrent.name(), e,).as_str(),
                     );
                     return false;
                 }

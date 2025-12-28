@@ -71,6 +71,9 @@ pub struct HandleNotWorking {
     min_strike_days: i32,
     required_strikes: i32,
     protection_tag: String,
+    ignore_dht: bool,
+    ignore_pex: bool,
+    ignore_lsd: bool,
     action: String,
 }
 
@@ -86,6 +89,15 @@ impl HandleNotWorking {
     }
     pub fn protection_tag(&self) -> &str {
         &self.protection_tag
+    }
+    pub fn ignore_dht(&self) -> &bool {
+        &self.ignore_dht
+    }
+    pub fn ignore_pex(&self) -> &bool {
+        &self.ignore_pex
+    }
+    pub fn ignore_lsd(&self) -> &bool {
+        &self.ignore_lsd
     }
     pub fn action(&self) -> &str {
         &self.action
@@ -167,6 +179,9 @@ impl Config {
                     min_strike_days: 5,
                     required_strikes: 10,
                     protection_tag: String::from("protected"),
+                    ignore_dht: true,
+                    ignore_pex: true,
+                    ignore_lsd: true,
                     action: String::from("test"),
                 },
                 handle_orphaned: HandleOrphaned {

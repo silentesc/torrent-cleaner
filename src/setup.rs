@@ -87,8 +87,7 @@ impl Setup {
                 config = match serde_json::from_str(&contents) {
                     Ok(config) => config,
                     Err(e) => {
-                        Logger::error(Category::Setup, format!("Failed to create config object from config file contents, using default config instead: {:#}", e).as_str());
-                        Config::default()
+                        return Err(anyhow::anyhow!("Failed to create config object from config file contents: {:#}", e));
                     }
                 };
             }
