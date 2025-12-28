@@ -16,16 +16,16 @@ use crate::{
 
 pub struct HandleForgotten {
     torrent_manager: Arc<TorrentManager>,
-    media_folder_path: String,
     config: Config,
+    torrents_path: String,
 }
 
 impl HandleForgotten {
-    pub fn new(torrent_manager: Arc<TorrentManager>, media_folder_path: String, config: Config) -> Self {
+    pub fn new(torrent_manager: Arc<TorrentManager>, config: Config, torrents_path: String) -> Self {
         Self {
             torrent_manager,
-            media_folder_path,
             config,
+            torrents_path,
         }
     }
 
@@ -43,7 +43,7 @@ impl HandleForgotten {
         self.torrent_manager.login().await.context("Failed to login to torrent client")?;
 
         // Get torrents from torrent client with criteria
-        let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(self.torrent_manager.clone(), &self.config, &self.media_folder_path).await?;
+        let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(self.torrent_manager.clone(), &self.config, &self.torrents_path).await?;
 
         Logger::info(
             Category::HandleForgotten,

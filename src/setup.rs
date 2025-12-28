@@ -30,17 +30,11 @@ impl Setup {
                 return Err(anyhow::anyhow!("Failed to get TORRENTS_PATH env variable: {:#}", e));
             }
         };
-        let media_path = match env::var("MEDIA_PATH") {
-            Ok(media_path) => media_path,
-            Err(e) => {
-                return Err(anyhow::anyhow!("Failed to get MEDIA_PATH env variable: {:#}", e));
-            }
-        };
 
         // Setup Config
         let config = Setup::get_config()?;
         Logger::debug(Category::Setup, "Config has been loaded");
-        
+
         // Create strike utils table
         if let Err(e) = Setup::check_create_db() {
             return Err(anyhow::anyhow!("Failed to check create db: {:#}", e));
@@ -55,7 +49,7 @@ impl Setup {
         };
 
         // Setup jobs
-        let job_manager = JobManager::new(config.clone(), torrent_manager.clone(), torrents_path.clone(), media_path.clone());
+        let job_manager = JobManager::new(config.clone(), torrent_manager.clone(), torrents_path);
         job_manager.setup();
 
         Ok(job_manager)
