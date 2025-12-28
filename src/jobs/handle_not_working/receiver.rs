@@ -99,7 +99,7 @@ impl Receiver {
             }
         }
         // All good
-        Logger::trace(Category::HandleNotWorking, format!("Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
+        Logger::debug(Category::HandleNotWorking, format!("Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
         true
     }
 }
