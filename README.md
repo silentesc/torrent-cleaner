@@ -84,7 +84,7 @@ The config will create itself on first start with recommended settings, but stil
   },
   "jobs": {
     "handle_unlinked": {
-      "interval_hours": 20, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 12, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_seeding_days": 20,
       "min_strike_days": 3,
       "required_strikes": 3,
@@ -102,7 +102,7 @@ The config will create itself on first start with recommended settings, but stil
       "action": "test" // test, stop, delete
     },
     "handle_orphaned": {
-      "interval_hours": 20, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 13, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 3,
       "required_strikes": 3,
       "action": "test" // test, delete
