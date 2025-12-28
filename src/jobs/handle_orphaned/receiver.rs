@@ -17,37 +17,37 @@ impl Receiver {
         let mut orphaned_path_strings: HashSet<String> = HashSet::new();
         for entry in WalkDir::new(torrents_path) {
             let entry_result = entry.context("Failed to get entry_result")?;
+            let path = entry_result.path();
+
+            if torrent_paths.contains(path) {
+                continue;
+            }
+
+            let file_type = entry_result.file_type();
+            let mut is_orphan = false;
+
             // Check for file
-            if entry_result.file_type().is_file() {
-                let path_buf = entry_result.into_path();
-                if torrent_paths.contains(&path_buf) {
-                    continue;
-                }
-                let path_string = match path_buf.into_os_string().into_string() {
-                    Ok(path_string) => path_string,
-                    Err(os_string) => {
-                        return Err(anyhow::anyhow!("Failed to convert PathBuf into string: {}", os_string.display()));
-                    }
-                };
-                orphaned_path_strings.insert(path_string);
+            if file_type.is_file() {
+                is_orphan = true;
             }
             // Check for empty dir
-            else if entry_result.file_type().is_dir() {
-                let path_buf = entry_result.clone().into_path();
-                if torrent_paths.contains(&path_buf) {
-                    continue;
+            else if file_type.is_dir() {
+                let mut entries = fs::read_dir(path).context("Failed to read dir")?;
+                if entries.next().is_none() {
+                    is_orphan = true;
                 }
-                let mut entries = fs::read_dir(entry_result.path()).context("Failed to read dir")?;
-                if entries.next().is_some() {
-                    continue;
+            }
+            // Handle edge case not file or dir (should not happen)
+            else {
+                return Err(anyhow::anyhow!("path is neither file or dir: {:?}", path));
+            }
+
+            if is_orphan {
+                if let Some(path_str) = path.to_str() {
+                    orphaned_path_strings.insert(path_str.to_string());
+                } else {
+                    return Err(anyhow::anyhow!("Failed to get string from path (may due to non-UTF8 path: {:?}", path));
                 }
-                let path_string = match path_buf.into_os_string().into_string() {
-                    Ok(path_string) => path_string,
-                    Err(os_string) => {
-                        return Err(anyhow::anyhow!("Failed to convert PathBuf into string: {}", os_string.display()));
-                    }
-                };
-                orphaned_path_strings.insert(path_string);
             }
         }
         Logger::debug(Category::HandleOrphaned, format!("Received {} orphaned paths", orphaned_path_strings.len()).as_str());
@@ -79,16 +79,23 @@ impl Receiver {
             }
             for entry in WalkDir::new(torrent.content_path()) {
                 let entry_result = entry.context("Failed to get entry_result")?;
+                let path = entry_result.path();
+                let file_type = entry_result.file_type();
+
                 // Check for file
-                if entry_result.file_type().is_file() {
+                if file_type.is_file() {
                     torrent_paths.insert(entry_result.into_path());
                 }
                 // Check for empty dir
-                else if entry_result.file_type().is_dir() {
-                    let mut entries = fs::read_dir(entry_result.path()).context("Failed to read dir")?;
+                else if file_type.is_dir() {
+                    let mut entries = fs::read_dir(path).context("Failed to read dir")?;
                     if entries.next().is_none() {
                         torrent_paths.insert(entry_result.into_path());
                     }
+                }
+                // Handle edge case not file or dir (should not happen)
+                else {
+                    return Err(anyhow::anyhow!("path is neither file or dir: {:?}", path));
                 }
             }
         }
