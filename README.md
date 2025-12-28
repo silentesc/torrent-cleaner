@@ -96,6 +96,9 @@ The config will create itself on first start with recommended settings, but stil
       "min_strike_days": 5,
       "required_strikes": 10,
       "protection_tag": "protected-not_working",
+      "ignore_dht": true,
+      "ignore_pex": true,
+      "ignore_lsd": true,
       "action": "test" // test, stop, delete
     },
     "handle_orphaned": {
