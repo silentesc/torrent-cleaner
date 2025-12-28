@@ -28,13 +28,13 @@ impl ActionTaker {
             ActionType::Test => {
                 Logger::info(Category::HandleNotWorking, "Action: Test");
                 if is_any_not_meeting_criteria {
-                    Logger::debug(Category::HandleNotWorking, "At least 1 other torrent depends this torrents files");
+                    Logger::debug(Category::HandleNotWorking, "  -> At least 1 other torrent depends this torrents files");
                 }
             }
             ActionType::Stop => {
                 Logger::info(Category::HandleNotWorking, "Action: Stopping torrent");
                 if is_any_not_meeting_criteria {
-                    Logger::debug(Category::HandleNotWorking, "At least 1 other torrent depends this torrents files");
+                    Logger::debug(Category::HandleNotWorking, "  -> At least 1 other torrent depends this torrents files");
                 }
                 torrent_manager.stop_torrent(torrent.hash()).await.context("Failed to stop torrent")?;
             }
@@ -43,7 +43,7 @@ impl ActionTaker {
                     Logger::info(Category::HandleNotWorking, "Action: Deleting torrent but keeping files (at least 1 other torrent depends on them)");
                     torrent_manager.delete_torrent(torrent.hash(), false).await.context("Failed to delete torrent")?;
                 } else {
-                    Logger::info(Category::HandleNotWorking, "Action: Deleting torrent and files");
+                    Logger::info(Category::HandleNotWorking, "Action: Deleting torrent + files");
                     torrent_manager.delete_torrent(torrent.hash(), true).await.context("Failed to delete torrent")?;
                 }
             }
