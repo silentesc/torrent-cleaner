@@ -4,7 +4,7 @@ use tokio::{sync::Mutex, time::sleep};
 
 use crate::{
     config::Config,
-    jobs::{handle_forgotten::handle_forgotten::HandleForgotten, handle_not_working::handle_not_working::HandleNotWorking, handle_orphaned::handle_orphaned::HandleOrphaned},
+    jobs::{handle_unlinked::handle_unlinked::HandleUnlinked, handle_not_working::handle_not_working::HandleNotWorking, handle_orphaned::handle_orphaned::HandleOrphaned},
     logger::{enums::category::Category, logger::Logger},
     torrent_clients::torrent_manager::TorrentManager,
 };
@@ -27,18 +27,18 @@ impl JobManager {
     }
 
     pub fn setup(&self) {
-        let handle_forgotten = Arc::new(HandleForgotten::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
+        let handle_unlinked = Arc::new(HandleUnlinked::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
         let handle_not_working = Arc::new(HandleNotWorking::new(self.torrent_manager.clone(), self.config.clone()));
         let handle_orphaned = Arc::new(HandleOrphaned::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
 
         self.spawn_job(
-            String::from("handle_forgotten"),
-            self.config.jobs().handle_forgotten().interval_hours(),
-            Config::default().jobs().handle_forgotten().interval_hours(),
-            handle_forgotten.clone(),
+            String::from("handle_unlinked"),
+            self.config.jobs().handle_unlinked().interval_hours(),
+            Config::default().jobs().handle_unlinked().interval_hours(),
+            handle_unlinked.clone(),
             |handler| async move {
                 if let Err(e) = handler.run().await {
-                    Logger::error(Category::JobManager, format!("Failed to run handle_forgotten: {:#}", e).as_str());
+                    Logger::error(Category::JobManager, format!("Failed to run handle_unlinked: {:#}", e).as_str());
                 }
             },
         );

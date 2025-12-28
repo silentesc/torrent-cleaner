@@ -7,20 +7,20 @@ use crate::{
     config::Config,
     jobs::{
         enums::strike_type::StrikeType,
-        handle_forgotten::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
+        handle_unlinked::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
         utils::{discord_webhook_utils::DiscordWebhookUtils, strike_utils::StrikeUtils},
     },
     logger::{enums::category::Category, logger::Logger},
     torrent_clients::{models::torrent::Torrent, torrent_manager::TorrentManager},
 };
 
-pub struct HandleForgotten {
+pub struct HandleUnlinked {
     torrent_manager: Arc<TorrentManager>,
     config: Config,
     torrents_path: String,
 }
 
-impl HandleForgotten {
+impl HandleUnlinked {
     pub fn new(torrent_manager: Arc<TorrentManager>, config: Config, torrents_path: String) -> Self {
         Self {
             torrent_manager,
@@ -46,25 +46,25 @@ impl HandleForgotten {
         let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(self.torrent_manager.clone(), &self.config, &self.torrents_path).await?;
 
         Logger::info(
-            Category::HandleForgotten,
+            Category::HandleUnlinked,
             format!("{} torrents meet criteria", torrents_criteria.values().filter(|(_, is_criteria_met)| *is_criteria_met).count()).as_str(),
         );
 
         // Striking
-        Logger::debug(Category::HandleForgotten, "Striking torrents...");
+        Logger::debug(Category::HandleUnlinked, "Striking torrents...");
         let mut strike_utils = StrikeUtils::new()?;
         let limit_reached_torrents = Striker::strike_torrents(&mut strike_utils, &torrents_criteria, &self.config)?;
-        Logger::debug(Category::HandleForgotten, "Done striking torrents");
+        Logger::debug(Category::HandleUnlinked, "Done striking torrents");
 
         Logger::info(
-            Category::HandleForgotten,
+            Category::HandleUnlinked,
             format!("{} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str(),
         );
 
         // Go through torrents
         for torrent in &limit_reached_torrents {
             // Log
-            Logger::info(Category::HandleForgotten, format!("Torrent forgotten: {}", torrent.name()).as_str());
+            Logger::info(Category::HandleUnlinked, format!("Torrent unlinked: {}", torrent.name()).as_str());
 
             // Notification
             Notifier::send_notification(&mut discord_webhook_utils, &torrent, &self.config).await.context("Failed to send notification")?;
@@ -74,9 +74,9 @@ impl HandleForgotten {
         }
 
         // Clean db
-        Logger::debug(Category::HandleForgotten, "Cleaning db...");
+        Logger::debug(Category::HandleUnlinked, "Cleaning db...");
         self.clean_db(&mut strike_utils, &torrents_criteria, &limit_reached_torrents)?;
-        Logger::debug(Category::HandleForgotten, "Cleaned db");
+        Logger::debug(Category::HandleUnlinked, "Cleaned db");
 
         // Logout
         self.torrent_manager.logout().await.context("Failed to logout of torrent client")?;
@@ -94,7 +94,7 @@ impl HandleForgotten {
         let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
         hashes_to_remove.extend(limit_reached_torrent_hashes);
 
-        let strike_records = strike_utils.get_strikes(&StrikeType::HandleForgotten, None).context("Failed to get all strikes for HandleForgotten")?;
+        let strike_records = strike_utils.get_strikes(&StrikeType::HandleUnlinked, None).context("Failed to get all strikes for HandleUnlinked")?;
         for strike_record in strike_records {
             match torrents_criteria.get(strike_record.hash()) {
                 // Check for stuff that doesn't meet criteria
@@ -110,9 +110,9 @@ impl HandleForgotten {
             }
         }
 
-        Logger::debug(Category::HandleForgotten, format!("Deleting {} hashes", hashes_to_remove.len()).as_str());
+        Logger::debug(Category::HandleUnlinked, format!("Deleting {} hashes", hashes_to_remove.len()).as_str());
 
-        strike_utils.delete(StrikeType::HandleForgotten, hashes_to_remove).context("Failed to delete hashes")?;
+        strike_utils.delete(StrikeType::HandleUnlinked, hashes_to_remove).context("Failed to delete hashes")?;
 
         Ok(())
     }

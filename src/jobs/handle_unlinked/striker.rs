@@ -20,19 +20,19 @@ impl Striker {
         let criteria_met_hashes: Vec<String> = torrents_criteria.values().filter(|(_, met)| *met).map(|(torrent, _)| torrent.hash().to_string()).collect();
 
         // Strike torrents that meet criteria
-        strike_utils.strike(&StrikeType::HandleForgotten, criteria_met_hashes.clone()).context("Failed to strike hashes")?;
+        strike_utils.strike(&StrikeType::HandleUnlinked, criteria_met_hashes.clone()).context("Failed to strike hashes")?;
 
         // Get all strike stuff from the db for this job
-        let strike_records = strike_utils.get_strikes(&StrikeType::HandleForgotten, Some(criteria_met_hashes)).context("Failed get strikes")?;
+        let strike_records = strike_utils.get_strikes(&StrikeType::HandleUnlinked, Some(criteria_met_hashes)).context("Failed get strikes")?;
 
         // Get torrents that reached the strike limits
         let mut limit_reached_torrents: Vec<Torrent> = Vec::new();
         for strike_record in strike_records {
-            if strike_record.is_limit_reached(config.jobs().handle_forgotten().required_strikes(), config.jobs().handle_forgotten().min_strike_days()) {
+            if strike_record.is_limit_reached(config.jobs().handle_unlinked().required_strikes(), config.jobs().handle_unlinked().min_strike_days()) {
                 if let Some(torrent_criteria) = torrents_criteria.get(strike_record.hash()) {
                     limit_reached_torrents.push(torrent_criteria.clone().0);
                 } else {
-                    Logger::warn(Category::HandleForgotten,format!("Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str());
+                    Logger::warn(Category::HandleUnlinked,format!("Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str());
                 }
             }
         }

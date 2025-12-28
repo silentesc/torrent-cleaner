@@ -8,7 +8,7 @@
   - qBittorrent
 
 # Jobs
-- HandleForgotten (handle torrents that are not present in the media dir):
+- HandleUnlinked (handle torrents that have no hardlinkes outside the torrent folder):
   - All features from above, plus:
     - Minimum seeding days (action only taken if torrent was **actively seeding** for x days)
   - Supported actions:
@@ -29,9 +29,7 @@
       - delete (Delete files/folders, Log, Discord Notification)
 
 # Prerequirements
-- Have the torrents and media library on the same filesystem (needed for hardlinking)
 - Use hardlinks only! Symlink, copying files, etc. is not supported and could cause data loss!
-- Have a parent folder with torrents/media folder inside (e.g. /data | /data/torrents | /data/media)
 
 # How to install
 
@@ -85,12 +83,12 @@ The config will create itself on first start with recommended settings, but stil
     "password": "adminadmin"
   },
   "jobs": {
-    "handle_forgotten": {
+    "handle_unlinked": {
       "interval_hours": 20, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_seeding_days": 20,
       "min_strike_days": 3,
       "required_strikes": 3,
-      "protection_tag": "protected-forgotten",
+      "protection_tag": "protected-unlinked",
       "action": "test" // test, stop, delete
     },
     "handle_not_working": {
