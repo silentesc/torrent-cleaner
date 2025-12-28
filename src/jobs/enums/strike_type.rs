@@ -1,6 +1,6 @@
 #[derive(Clone)]
 pub enum StrikeType {
-    HandleForgotten,
+    HandleUnlinked,
     HandleNotWorking,
     HandleOrphaned,
 }
@@ -8,7 +8,7 @@ pub enum StrikeType {
 impl StrikeType {
     pub fn to_string(&self) -> String {
         match self {
-            StrikeType::HandleForgotten => String::from("handle_forgotten"),
+            StrikeType::HandleUnlinked => String::from("handle_unlinked"),
             StrikeType::HandleNotWorking => String::from("handle_not_working"),
             StrikeType::HandleOrphaned => String::from("handle_orphaned"),
         }

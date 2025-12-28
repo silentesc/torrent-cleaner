@@ -42,9 +42,9 @@ mod jobs {
         pub mod file_utils;
         pub mod strike_utils;
     }
-    pub mod handle_forgotten {
+    pub mod handle_unlinked {
         pub mod action_taker;
-        pub mod handle_forgotten;
+        pub mod handle_unlinked;
         pub mod notifier;
         pub mod receiver;
         pub mod striker;

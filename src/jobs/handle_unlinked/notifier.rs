@@ -42,7 +42,7 @@ impl Notifier {
             },
             EmbedField {
                 name: String::from("Action"),
-                value: config.jobs().handle_forgotten().action().to_string(),
+                value: config.jobs().handle_unlinked().action().to_string(),
                 inline: true,
             },
             EmbedField {
@@ -81,6 +81,6 @@ impl Notifier {
                 inline: true,
             },
         ];
-        discord_webhook_utils.send_webhook_embed(torrent.name(), "Found forgotten torrent", fields).await
+        discord_webhook_utils.send_webhook_embed(torrent.name(), "Found unlinked torrent", fields).await
     }
 }

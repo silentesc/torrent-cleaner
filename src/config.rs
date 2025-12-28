@@ -35,7 +35,7 @@ impl TorrentClient {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct HandleForgotten {
+pub struct HandleUnlinked {
     interval_hours: i32,
     min_seeding_days: i32,
     min_strike_days: i32,
@@ -44,7 +44,7 @@ pub struct HandleForgotten {
     action: String,
 }
 
-impl HandleForgotten {
+impl HandleUnlinked {
     pub fn interval_hours(&self) -> i32 {
         self.interval_hours
     }
@@ -129,14 +129,14 @@ impl HandleOrphaned {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Jobs {
-    handle_forgotten: HandleForgotten,
+    handle_unlinked: HandleUnlinked,
     handle_not_working: HandleNotWorking,
     handle_orphaned: HandleOrphaned,
 }
 
 impl Jobs {
-    pub fn handle_forgotten(&self) -> &HandleForgotten {
-        &self.handle_forgotten
+    pub fn handle_unlinked(&self) -> &HandleUnlinked {
+        &self.handle_unlinked
     }
     pub fn handle_not_working(&self) -> &HandleNotWorking {
         &self.handle_not_working
@@ -166,7 +166,7 @@ impl Config {
                 password: String::from(""),
             },
             jobs: Jobs {
-                handle_forgotten: HandleForgotten {
+                handle_unlinked: HandleUnlinked {
                     interval_hours: 24,
                     min_seeding_days: 20,
                     min_strike_days: 3,
