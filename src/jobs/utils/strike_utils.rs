@@ -127,8 +127,7 @@ impl StrikeUtils {
             match row {
                 Ok(strike_record) => strike_records.push(strike_record),
                 Err(e) => {
-                    Logger::error(Category::Striker, format!("Failed to get strike record: {:#}", e).as_str());
-                    continue;
+                    anyhow::bail!(e);
                 }
             }
         }

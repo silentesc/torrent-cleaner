@@ -24,14 +24,14 @@ impl ActionTaker {
             ActionType::Delete => {
                 if path.is_file() {
                     if let Err(e) = fs::remove_file(path) {
-                        Logger::error(Category::HandleOrphaned, format!("Error deleting orphaned file ({}): {:#}", path.display(), e).as_str());
+                        anyhow::bail!("Error deleting orphaned file ({}): {:#}", path.display(), e);
                     }
                 } else if path.is_dir() {
                     if let Err(e) = fs::remove_dir(path) {
-                        Logger::error(Category::HandleOrphaned, format!("Error deleting orphaned dir ({}): {:#}", path.display(), e).as_str());
+                        anyhow::bail!("Error deleting orphaned dir ({}): {:#}", path.display(), e);
                     }
                 } else {
-                    Logger::warn(Category::HandleOrphaned, format!("Path is neither file or dir: {}", path.display()).as_str());
+                    anyhow::bail!("Path is neither file or dir: {}", path.display());
                 }
             }
         }
