@@ -129,7 +129,7 @@ impl Qbittorrent {
                     continue;
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!("Failed to login to qbittorrent on try {}/{}: {:?}", attempt, max_retries, e));
+                    return Err(anyhow::anyhow!("Failed to login to qbittorrent on try {}/{}: {:#}", attempt, max_retries, e));
                 }
             }
         }
