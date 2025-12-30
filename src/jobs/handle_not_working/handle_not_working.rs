@@ -77,11 +77,13 @@ impl HandleNotWorking {
             Logger::info(Category::HandleNotWorking, format!("Torrent not working: {}", torrent.name()).as_str());
 
             // Notification
-            let trackers = match torrent_trackers.get(torrent.hash()) {
-                Some(trackers) => trackers,
-                None => &Vec::new(),
-            };
-            Notifier::send_notification(&mut discord_webhook_utils, &torrent, &trackers, &self.config).await.context("Failed to send notification")?;
+            if *self.config.notification().on_job_action() {
+                let trackers = match torrent_trackers.get(torrent.hash()) {
+                    Some(trackers) => trackers,
+                    None => &Vec::new(),
+                };
+                Notifier::send_notification(&mut discord_webhook_utils, &torrent, &trackers, &self.config).await.context("Failed to send notification")?;
+            }
 
             // Take action
             ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, &torrent, &self.config).await?;

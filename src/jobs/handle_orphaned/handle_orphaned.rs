@@ -58,9 +58,11 @@ impl HandleOrphaned {
             Logger::info(Category::HandleOrphaned, format!("Orphaned path: {}", path_string).as_str());
 
             // Notification
-            Notifier::send_notification(&mut discord_webhook_utils, path_string.as_str(), path, &self.config)
-                .await
-                .context("Failed to send notification")?;
+            if *self.config.notification().on_job_action() {
+                Notifier::send_notification(&mut discord_webhook_utils, path_string.as_str(), path, &self.config)
+                    .await
+                    .context("Failed to send notification")?;
+            }
 
             // Take action
             ActionTaker::take_action(path, &self.config)?;

@@ -3,11 +3,21 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Notification {
     discord_webhook_url: String,
+    on_job_action: bool,
+    on_job_error: bool,
 }
 
 impl Notification {
     pub fn discord_webhook_url(&self) -> &str {
         &self.discord_webhook_url
+    }
+
+    pub fn on_job_action(&self) -> &bool {
+        &self.on_job_action
+    }
+
+    pub fn on_job_error(&self) -> &bool {
+        &self.on_job_error
     }
 }
 
@@ -158,6 +168,8 @@ impl Config {
         Self {
             notification: Notification {
                 discord_webhook_url: String::from(""),
+                on_job_action: true,
+                on_job_error: true,
             },
             torrent_client: TorrentClient {
                 client: String::from(""),
