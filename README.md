@@ -74,7 +74,9 @@ The config will create itself on first start with recommended settings, but stil
 ```json
 {
   "notification": {
-    "discord_webhook_url": "" // Leave empty to disable
+    "discord_webhook_url": "", // Leave empty to disable
+    "on_job_action": true,
+    "on_job_error": true
   },
   "torrent_client": {
     "client": "qbittorrent",
