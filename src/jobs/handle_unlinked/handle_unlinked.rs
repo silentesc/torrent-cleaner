@@ -22,11 +22,7 @@ pub struct HandleUnlinked {
 
 impl HandleUnlinked {
     pub fn new(torrent_manager: Arc<TorrentManager>, config: Config, torrents_path: String) -> Self {
-        Self {
-            torrent_manager,
-            config,
-            torrents_path,
-        }
+        Self { torrent_manager, config, torrents_path }
     }
 
     /**
@@ -67,7 +63,9 @@ impl HandleUnlinked {
             Logger::info(Category::HandleUnlinked, format!("Torrent unlinked: {}", torrent.name()).as_str());
 
             // Notification
-            Notifier::send_notification(&mut discord_webhook_utils, &torrent, &self.config).await.context("Failed to send notification")?;
+            if *self.config.notification().on_job_action() {
+                Notifier::send_notification(&mut discord_webhook_utils, &torrent, &self.config).await.context("Failed to send notification")?;
+            }
 
             // Take action
             ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, &torrent, &self.config).await?;
