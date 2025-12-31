@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use crate::logger::{enums::category::Category, logger::Logger};
 use crate::torrent_clients::models::torrent::Torrent;
+use crate::torrent_clients::models::torrent_file::TorrentFile;
 use crate::torrent_clients::models::tracker::Tracker;
 
 use anyhow::Context;
@@ -181,7 +182,7 @@ impl Qbittorrent {
         let make_request_builder = || self.client.get(endpoint.clone());
 
         let response = self.make_request(make_request_builder).await.context("Qbittorrent get torrents failed")?;
-        let torrents: Vec<Torrent> = response.json().await.context("Parsing torrents failed")?;
+        let torrents: Vec<Torrent> = response.json().await.context("Qbittorrent parsing torrents failed")?;
 
         Ok(torrents)
     }
@@ -196,9 +197,24 @@ impl Qbittorrent {
         let make_request_builder = || self.client.get(endpoint.clone()).query(&params);
 
         let response = self.make_request(make_request_builder).await.context("Qbittorrent get trackers failed")?;
-        let trackers: Vec<Tracker> = response.json().await.context("Qbittorrent Parsing trackers failed")?;
+        let trackers: Vec<Tracker> = response.json().await.context("Qbittorrent parsing trackers failed")?;
 
         Ok(trackers)
+    }
+
+    /**
+     * Get torrent files
+     */
+    pub async fn get_torrent_files(&self, torrent_hash: &str) -> Result<Vec<TorrentFile>, anyhow::Error> {
+        let endpoint = self.base_url.join("api/v2/torrents/files")?;
+        let params = [("hash", torrent_hash)];
+
+        let make_request_builder = || self.client.get(endpoint.clone()).query(&params);
+
+        let response = self.make_request(make_request_builder).await.context("Qbittorrent get files failed")?;
+        let torrent_files: Vec<TorrentFile> = response.json().await.context("Qbittorrent parsing TorrentFile failed")?;
+
+        Ok(torrent_files)
     }
 
     /**
