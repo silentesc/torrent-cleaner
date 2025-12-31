@@ -204,6 +204,12 @@ impl Qbittorrent {
 
     /**
      * Get torrent files
+     * Example:
+     *   save_path: /data/torrents
+     *   content_path: /data/torrents/torrent1
+     *   file: /data/torrents/torrent1/folder/file.txt
+     * This returns the relative file name like this:
+     *   torrent1/folder/file.txt
      */
     pub async fn get_torrent_files(&self, torrent_hash: &str) -> Result<Vec<TorrentFile>, anyhow::Error> {
         let endpoint = self.base_url.join("api/v2/torrents/files")?;
