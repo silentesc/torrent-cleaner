@@ -21,7 +21,7 @@ impl FileUtils {
     }
 
     pub fn has_external_hardlinks(known_hardlinks: &HashMap<u64, u64>, path_str: &str) -> Result<bool, anyhow::Error> {
-        let path_metadata = Path::new(path_str).metadata().context("Failed to get file metadata")?;
+        let path_metadata = Path::new(path_str).metadata().context(format!("Failed to get file metadata for {}", path_str))?;
         let path_file_type = path_metadata.file_type();
 
         // Handle file path
@@ -41,7 +41,7 @@ impl FileUtils {
         else if path_file_type.is_dir() {
             for entry in WalkDir::new(path_str) {
                 let entry_result = entry.context("Failed to get entry result")?;
-                let metadata = entry_result.metadata().context("Failed to get file metadata")?;
+                let metadata = entry_result.metadata().context(format!("Failed to get file metadata for {:?}", entry_result.path()))?;
                 if metadata.is_file() {
                     let ino = metadata.ino();
                     let nlink = metadata.nlink();
