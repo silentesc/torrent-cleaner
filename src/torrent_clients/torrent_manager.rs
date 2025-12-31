@@ -21,6 +21,10 @@ impl TorrentManager {
         self.torrent_client.logout().await
     }
 
+    pub async fn is_logged_in(&self) -> Result<bool, anyhow::Error> {
+        self.torrent_client.is_logged_in().await
+    }
+
     pub async fn get_all_torrents(&self) -> Result<Vec<Torrent>, anyhow::Error> {
         self.torrent_client.get_all_torrents().await
     }
