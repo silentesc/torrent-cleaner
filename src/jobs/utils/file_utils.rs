@@ -8,6 +8,7 @@ pub struct FileUtils {}
 impl FileUtils {
     /**
      * Returns a HashMap of the inode and the count of known links
+     * Walk through dir instead of using torrent content files because an orphaned file might still be externally linked
      */
     pub fn get_known_hardlinks(dir_path_str: &str) -> Result<HashMap<u64, u64>, anyhow::Error> {
         let mut files_hardlink_count: HashMap<u64, u64> = HashMap::new();
