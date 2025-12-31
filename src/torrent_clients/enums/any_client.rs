@@ -21,6 +21,12 @@ impl TorrentClient for AnyClient {
         }
     }
 
+    async fn is_logged_in(&self) -> Result<bool, anyhow::Error> {
+        match self {
+            AnyClient::Qbittorrent(c) => c.is_logged_in().await,
+        }
+    }
+
     async fn get_all_torrents(&self) -> Result<Vec<Torrent>, anyhow::Error> {
         match self {
             AnyClient::Qbittorrent(c) => c.get_all_torrents().await,

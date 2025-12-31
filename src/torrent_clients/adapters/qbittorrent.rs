@@ -106,6 +106,11 @@ impl Qbittorrent {
      * Login
      */
     pub async fn login(&self) -> Result<(), anyhow::Error> {
+        if self.is_logged_in().await? {
+            Logger::warn(Category::Qbittorrent, "Login: Already logged in, ignoring...");
+            return Ok(());
+        }
+
         let endpoint = self.base_url.join("api/v2/auth/login")?;
         let params = [("username", &self.username), ("password", &self.password)];
         let max_retries = 6;
@@ -149,6 +154,22 @@ impl Qbittorrent {
         Logger::info(Category::Qbittorrent, "Logged out");
 
         Ok(())
+    }
+
+    /**
+     * Is logged in
+     */
+    pub async fn is_logged_in(&self) -> Result<bool, anyhow::Error> {
+        let endpoint = self.base_url.join("api/v2/app/version")?;
+
+        let response = self.client.get(endpoint.clone()).send().await.context("Qbittorrent getting app version failed")?;
+        let text = response.text().await?;
+
+        if text == "Forbidden" {
+            return Ok(false);
+        }
+
+        Ok(true)
     }
 
     /**
