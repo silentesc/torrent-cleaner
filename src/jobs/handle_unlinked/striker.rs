@@ -5,8 +5,9 @@ use anyhow::Context;
 use crate::{
     config::Config,
     jobs::{enums::strike_type::StrikeType, utils::strike_utils::StrikeUtils},
-    logger::{enums::category::Category, logger::Logger},
+    logger::enums::category::Category,
     torrent_clients::models::torrent::Torrent,
+    warn,
 };
 
 pub struct Striker;
@@ -14,6 +15,7 @@ pub struct Striker;
 impl Striker {
     /**
      * Strike torrents
+     * Returns: Vec of Torrents that reached the strike limit
      */
     pub fn strike_torrents(strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, config: &Config) -> Result<Vec<Torrent>, anyhow::Error> {
         // Get torrent hashes of torrents that meet criteria
@@ -32,7 +34,7 @@ impl Striker {
                 if let Some(torrent_criteria) = torrents_criteria.get(strike_record.hash()) {
                     limit_reached_torrents.push(torrent_criteria.clone().0);
                 } else {
-                    Logger::warn(Category::HandleUnlinked,format!("Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash()).as_str());
+                    warn!(Category::HandleUnlinked, "Didn't find torrent criteria for torrent that reached strike limit: {}", strike_record.hash());
                 }
             }
         }

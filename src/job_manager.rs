@@ -5,9 +5,11 @@ use tokio::{sync::Mutex, time::sleep};
 
 use crate::{
     config::Config,
+    error, info,
     jobs::{handle_not_working::handle_not_working::HandleNotWorking, handle_orphaned::handle_orphaned::HandleOrphaned, handle_unlinked::handle_unlinked::HandleUnlinked, utils::discord_webhook_utils::DiscordWebhookUtils},
-    logger::{enums::category::Category, logger::Logger},
+    logger::enums::category::Category,
     torrent_clients::torrent_manager::TorrentManager,
+    warn,
 };
 
 pub struct JobManager {
@@ -43,12 +45,12 @@ impl JobManager {
             handle_unlinked.clone(),
             |handler: Arc<HandleUnlinked>, notify_on_job_error: bool, discord_webhook_url: Option<Url>| async move {
                 if let Err(e) = handler.run().await {
-                    Logger::error(Category::JobManager, format!("Failed to run handle_unlinked: {:#}", e).as_str());
+                    error!(Category::JobManager, "Failed to run handle_unlinked: {:#}", e);
                     // Notify on discord
                     if notify_on_job_error {
                         let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
                         if let Err(e) = discord_webhook_utils.send_webhook_embed("Error", "`handle_unlinked` threw an error. Please check logs for more details.", vec![]).await {
-                            Logger::error(Category::JobManager, format!("Error while sending discord webhook error message: {:#}", e).as_str());
+                            error!(Category::JobManager, "Error while sending discord webhook error message: {:#}", e);
                         }
                     }
                 }
@@ -64,7 +66,7 @@ impl JobManager {
             handle_not_working.clone(),
             |handler: Arc<HandleNotWorking>, notify_on_job_error: bool, discord_webhook_url: Option<Url>| async move {
                 if let Err(e) = handler.run().await {
-                    Logger::error(Category::JobManager, format!("Failed to run handle_not_working: {:#}", e).as_str());
+                    error!(Category::JobManager, "Failed to run handle_not_working: {:#}", e);
                     // Notify on discord
                     if notify_on_job_error {
                         let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
@@ -72,7 +74,7 @@ impl JobManager {
                             .send_webhook_embed("Error", "`handle_not_working` threw an error. Please check logs for more details.", vec![])
                             .await
                         {
-                            Logger::error(Category::JobManager, format!("Error while sending discord webhook error message: {:#}", e).as_str());
+                            error!(Category::JobManager, "Error while sending discord webhook error message: {:#}", e);
                         }
                     }
                 }
@@ -88,12 +90,12 @@ impl JobManager {
             handle_orphaned.clone(),
             |handler: Arc<HandleOrphaned>, notify_on_job_error: bool, discord_webhook_url: Option<Url>| async move {
                 if let Err(e) = handler.run().await {
-                    Logger::error(Category::JobManager, format!("Failed to run handle_orphaned: {:#}", e).as_str());
+                    error!(Category::JobManager, "Failed to run handle_orphaned: {:#}", e);
                     // Notify on discord
                     if notify_on_job_error {
                         let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
                         if let Err(e) = discord_webhook_utils.send_webhook_embed("Error", "`handle_orphaned` threw an error. Please check logs for more details.", vec![]).await {
-                            Logger::error(Category::JobManager, format!("Error while sending discord webhook error message: {:#}", e).as_str());
+                            error!(Category::JobManager, "Error while sending discord webhook error message: {:#}", e);
                         }
                     }
                 }
@@ -114,7 +116,7 @@ impl JobManager {
         let lock = self.job_lock.clone();
 
         tokio::spawn(async move {
-            Logger::info(Category::JobManager, format!("Set up {}, next run in {} hours", job_name, interval_hours).as_str());
+            info!(Category::JobManager, "Set up {}, next run in {} hours", job_name, interval_hours);
 
             // Test/Sleep
             let mut interval_hours = interval_hours;
@@ -128,12 +130,12 @@ impl JobManager {
                 let start_time = std::time::Instant::now();
                 {
                     let _guard = lock.lock().await;
-                    Logger::info(Category::JobManager, format!("Starting {}...", job_name).as_str());
+                    info!(Category::JobManager, "Starting {}...", job_name);
                     job_fn(handler.clone(), notify_on_job_error, discord_webhook_url.clone()).await;
                 }
                 let elapsed = start_time.elapsed();
                 let sleep_duration = Duration::from_hours(interval_hours as u64).saturating_sub(elapsed);
-                Logger::info(Category::JobManager, format!("{} finished, next run in {} hours", job_name, interval_hours).as_str());
+                info!(Category::JobManager, "{} finished, next run in {} hours", job_name, interval_hours);
                 sleep(sleep_duration).await;
             }
         });
@@ -142,12 +144,12 @@ impl JobManager {
     pub async fn wait_for_jobs_to_finish(&self) {
         match self.job_lock.try_lock() {
             Ok(_) => {
-                Logger::info(Category::JobManager, "No jobs are running");
+                info!(Category::JobManager, "No jobs are running");
             }
             Err(_) => {
-                Logger::warn(Category::JobManager, "A job is still running, waiting for it to finish...");
+                warn!(Category::JobManager, "A job is still running, waiting for it to finish...");
                 let _ = self.job_lock.lock().await;
-                Logger::info(Category::JobManager, "All jobs finished");
+                info!(Category::JobManager, "All jobs finished");
             }
         }
     }

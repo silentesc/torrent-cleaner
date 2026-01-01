@@ -4,12 +4,14 @@ use anyhow::Context;
 
 use crate::{
     config::Config,
-    logger::{enums::category::Category, logger::Logger},
+    debug,
+    logger::enums::category::Category,
     torrent_clients::{
         enums::{torrent_state::TorrentState, tracker_status::TrackerStatus},
         models::{torrent::Torrent, tracker::Tracker},
         torrent_manager::TorrentManager,
     },
+    trace, warn,
 };
 
 pub struct Receiver;
@@ -41,7 +43,8 @@ impl Receiver {
     }
 
     /**
-     * Get torrents criteria
+     * Get torrents and if they match criteria
+     * Returns: HashMap<String, (Torrent, bool)> | HashMap<torrent_hash, (Torrent, is_criteria_met))>
      */
     pub async fn get_torrents_criteria(torrents: &Vec<Torrent>, torrent_trackers: &HashMap<String, Vec<Tracker>>, config: &Config) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
         // Check torrents for criteria
@@ -51,7 +54,7 @@ impl Receiver {
                 let is_criteria_met = Receiver::is_criteria_met(&torrent, trackers, &config).await.context("Failed to get criteria")?;
                 torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), is_criteria_met));
             } else {
-                Logger::warn(Category::HandleNotWorking, format!("Cannot get tracker for torrent: ({}) {}", torrent.hash(), torrent.name()).as_str());
+                warn!(Category::HandleNotWorking, "Cannot get tracker for torrent: ({}) {}", torrent.hash(), torrent.name());
             }
         }
 
@@ -64,12 +67,12 @@ impl Receiver {
     async fn is_criteria_met(torrent: &Torrent, trackers: &Vec<Tracker>, config: &Config) -> Result<bool, anyhow::Error> {
         // Uncompleted
         if *torrent.completion_on() == -1 {
-            Logger::trace(Category::HandleNotWorking, format!("Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),).as_str());
+            trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),);
             return Ok(false);
         }
         // Protection tag
         if torrent.tags().contains(config.jobs().handle_not_working().protection_tag()) {
-            Logger::trace(Category::HandleNotWorking, format!("Torrent doesn't meet criteria (protection tag): ({}) {}", torrent.hash(), torrent.name(),).as_str());
+            trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (protection tag): ({}) {}", torrent.hash(), torrent.name(),);
             return Ok(false);
         }
         // Stopped torrent
@@ -81,7 +84,7 @@ impl Receiver {
         ]
         .contains(&torrent.state().to_string())
         {
-            Logger::trace(Category::HandleNotWorking, format!("Torrent doesn't meet criteria (stopped): ({}) {}", torrent.hash(), torrent.name(),).as_str());
+            trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (stopped): ({}) {}", torrent.hash(), torrent.name(),);
             return Ok(false);
         }
         // Working trackers
@@ -89,10 +92,7 @@ impl Receiver {
             match TrackerStatus::from_int(*tracker.status()) {
                 Ok(tracker_status) => {
                     if matches!(tracker_status, TrackerStatus::Working) {
-                        Logger::trace(
-                            Category::HandleNotWorking,
-                            format!("Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}", torrent.hash(), torrent.name(),).as_str(),
-                        );
+                        trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}", torrent.hash(), torrent.name(),);
                         return Ok(false);
                     }
                 }
@@ -102,7 +102,7 @@ impl Receiver {
             }
         }
         // All good
-        Logger::debug(Category::HandleNotWorking, format!("Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name()).as_str());
+        debug!(Category::HandleNotWorking, "Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name());
         Ok(true)
     }
 }

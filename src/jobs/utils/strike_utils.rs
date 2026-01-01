@@ -2,10 +2,7 @@ use anyhow::Context;
 use chrono::{Duration, Local, NaiveDate};
 use rusqlite::{Connection, params};
 
-use crate::{
-    jobs::enums::strike_type::StrikeType,
-    logger::{enums::category::Category, logger::Logger},
-};
+use crate::{jobs::enums::strike_type::StrikeType, logger::enums::category::Category, trace, warn};
 
 #[derive(Clone)]
 pub struct StrikeRecord {
@@ -91,10 +88,10 @@ impl StrikeUtils {
                 let sql = format!("SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1 AND hash IN ({})", placeholders);
                 self.conn.prepare(sql.as_str()).context("Failed to prepare get_strikes select")?
             }
-            None => self
-                .conn
-                .prepare("SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1")
-                .context("Failed to prepare get_strikes select")?,
+            None => {
+                let sql = "SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1";
+                self.conn.prepare(sql).context("Failed to prepare get_strikes select")?
+            }
         };
 
         let rows = match hashes {
@@ -155,15 +152,12 @@ impl StrikeUtils {
                 .collect();
             // This should never be the case due to the unique contraint but you never know
             if strike_records_for_hash.len() > 1 {
-                Logger::warn(
+                warn!(
                     Category::Striker,
-                    format!(
-                        "Hash {} for strike type {} is {} times in the db. This should be impossible",
-                        hash,
-                        strike_type.to_string(),
-                        strike_records_for_hash.len(),
-                    )
-                    .as_str(),
+                    "Hash {} for strike type {} is {} times in the db. This should be impossible",
+                    hash,
+                    strike_type.to_string(),
+                    strike_records_for_hash.len(),
                 );
             }
             // Check for strike record of the hash
@@ -179,16 +173,13 @@ impl StrikeUtils {
                             params![today_local.format("%Y-%m-%d").to_string(), strike_type.to_string(), hash],
                         )
                         .context("Failed to insert new strike")?;
-                        Logger::trace(
-                            Category::Striker,
-                            format!("Hash {} ({}) was last striked yesterday, strikes and strike days have been increased", hash, strike_type.to_string(),).as_str(),
-                        );
+                        trace!(Category::Striker, "Hash {} ({}) was last striked yesterday, strikes and strike days have been increased", hash, strike_type.to_string(),);
                     }
                     // If the strike record was last striked today, just increase strikes
                     else if strike_record.last_strike_date == today_local {
                         tx.execute("UPDATE strikes SET strikes = strikes + 1 WHERE strike_type = ?1 AND hash = ?2", params![strike_type.to_string(), hash])
                             .context("Failed to insert new strike")?;
-                        Logger::trace(Category::Striker, format!("Hash {} ({}) was last striked today, strikes have been increased", hash, strike_type.to_string(),).as_str());
+                        trace!(Category::Striker, "Hash {} ({}) was last striked today, strikes have been increased", hash, strike_type.to_string());
                     }
                     // If the strike record was not striked today or yesterday, reset it
                     else {
@@ -197,10 +188,7 @@ impl StrikeUtils {
                             params![today_local.format("%Y-%m-%d").to_string(), strike_type.to_string(), hash],
                         )
                         .context("Failed to insert new strike")?;
-                        Logger::trace(
-                            Category::Striker,
-                            format!("Hash {} ({}) was not striked today or yesterday, everything has been reset", hash, strike_type.to_string(),).as_str(),
-                        );
+                        trace!(Category::Striker, "Hash {} ({}) was not striked today or yesterday, everything has been reset", hash, strike_type.to_string(),);
                     }
                 }
                 // If the strike record of the hash doesn't exist, strike for the first time
@@ -210,7 +198,7 @@ impl StrikeUtils {
                         params![strike_type.to_string(), hash, 1, 1, Local::now().date_naive().format("%Y-%m-%d").to_string()],
                     )
                     .context("Failed to insert new strike")?;
-                    Logger::trace(Category::Striker, format!("Hash {} ({}) has been striked for the first time", hash, strike_type.to_string(),).as_str());
+                    trace!(Category::Striker, "Hash {} ({}) has been striked for the first time", hash, strike_type.to_string());
                 }
             }
         }

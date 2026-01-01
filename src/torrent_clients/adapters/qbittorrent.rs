@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use crate::logger::{enums::category::Category, logger::Logger};
 use crate::torrent_clients::models::torrent::Torrent;
 use crate::torrent_clients::models::torrent_file::TorrentFile;
 use crate::torrent_clients::models::tracker::Tracker;
+use crate::{error, logger::enums::category::Category};
+use crate::{info, warn};
 
 use anyhow::Context;
 use reqwest::{Client, RequestBuilder, Response, StatusCode, Url};
@@ -57,7 +58,7 @@ impl Qbittorrent {
                     } else if attempt < max_retries {
                         // Not logged in anymore (e.g. qbittorrent restarted)
                         if respone.status() == StatusCode::UNAUTHORIZED || respone.status() == StatusCode::FORBIDDEN {
-                            Logger::error(Category::Qbittorrent, format!("Request to qbittorrent returned status code {}, trying to relogin", respone.status(),).as_str());
+                            error!(Category::Qbittorrent, "Request to qbittorrent returned status code {}, trying to relogin", respone.status());
                             match self.login().await {
                                 Ok(_) => {}
                                 Err(e) => return Err(e),
@@ -66,15 +67,12 @@ impl Qbittorrent {
                         }
                         // Any other non-successful status code
                         else {
-                            Logger::error(
+                            error!(
                                 Category::Qbittorrent,
-                                format!(
-                                    "Request to qbittorrent returned status code {}, waiting for {} seconds to try again: {}",
-                                    respone.status(),
-                                    delay.as_secs(),
-                                    respone.text().await.context("Failed to get error text")?,
-                                )
-                                .as_str(),
+                                "Request to qbittorrent returned status code {}, waiting for {} seconds to try again: {}",
+                                respone.status(),
+                                delay.as_secs(),
+                                respone.text().await.context("Failed to get error text")?
                             );
                             sleep(delay).await;
                             continue;
@@ -83,24 +81,21 @@ impl Qbittorrent {
                 }
                 // Request failed
                 Err(e) if attempt < max_retries => {
-                    Logger::error(
+                    error!(
                         Category::Qbittorrent,
-                        format!(
-                            "Request to qbittorrent failed on try {}/{}, waiting for {} seconds to try again: {}",
-                            attempt + 1,
-                            max_retries,
-                            delay.as_secs(),
-                            e.to_string(),
-                        )
-                        .as_str(),
+                        "Request to qbittorrent failed on try {}/{}, waiting for {} seconds to try again: {}",
+                        attempt + 1,
+                        max_retries,
+                        delay.as_secs(),
+                        e.to_string()
                     );
                     sleep(delay).await;
                     continue;
                 }
-                Err(e) => return Err(anyhow::anyhow!(e)),
+                Err(e) => anyhow::bail!(e),
             }
         }
-        Err(anyhow::anyhow!("Request to failed after {} tries", max_retries))
+        anyhow::bail!("Request to failed after {} tries", max_retries);
     }
 
     /**
@@ -108,7 +103,7 @@ impl Qbittorrent {
      */
     pub async fn login(&self) -> Result<(), anyhow::Error> {
         if self.is_logged_in().await? {
-            Logger::warn(Category::Qbittorrent, "Login: Already logged in, ignoring...");
+            warn!(Category::Qbittorrent, "Login: Already logged in, ignoring...");
             return Ok(());
         }
 
@@ -121,25 +116,22 @@ impl Qbittorrent {
             match self.client.post(endpoint.clone()).form(&(params.clone())).send().await {
                 Ok(response) => match response.headers().get("set-cookie") {
                     Some(_) => {
-                        Logger::info(Category::Qbittorrent, "Logged in");
+                        info!(Category::Qbittorrent, "Logged in");
                         return Ok(());
                     }
-                    None => return Err(anyhow::anyhow!("Failed to authenticate to qbittorrent")),
+                    None => anyhow::bail!("Failed to authenticate to qbittorrent"),
                 },
                 Err(_) if attempt < max_retries => {
-                    Logger::error(
-                        Category::Qbittorrent,
-                        format!("Failed to login to qbittorrent on try {}/{}, waiting for {} seconds", attempt, max_retries, delay.as_secs(),).as_str(),
-                    );
+                    error!(Category::Qbittorrent, "Failed to login to qbittorrent on try {}/{}, waiting for {} seconds", attempt, max_retries, delay.as_secs(),);
                     sleep(delay).await;
                     continue;
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!("Failed to login to qbittorrent on try {}/{}: {:#}", attempt, max_retries, e));
+                    anyhow::bail!("Failed to login to qbittorrent on try {}/{}: {:#}", attempt, max_retries, e);
                 }
             }
         }
-        Err(anyhow::anyhow!("Login request to qbittorrent failed"))
+        anyhow::bail!("Login request to qbittorrent failed");
     }
 
     /**
@@ -152,7 +144,7 @@ impl Qbittorrent {
 
         self.make_request(make_request_builder).await.context("Qbittorrent logout failed")?;
 
-        Logger::info(Category::Qbittorrent, "Logged out");
+        info!(Category::Qbittorrent, "Logged out");
 
         Ok(())
     }

@@ -5,12 +5,13 @@ use reqwest::Url;
 
 use crate::{
     config::Config,
+    debug, info,
     jobs::{
         enums::strike_type::StrikeType,
         handle_not_working::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
         utils::{discord_webhook_utils::DiscordWebhookUtils, strike_utils::StrikeUtils},
     },
-    logger::{enums::category::Category, logger::Logger},
+    logger::enums::category::Category,
     torrent_clients::{
         models::{torrent::Torrent, tracker::Tracker},
         torrent_manager::TorrentManager,
@@ -41,40 +42,38 @@ impl HandleNotWorking {
         self.torrent_manager.login().await.context("Failed to login to torrent client")?;
 
         // Get torrents from torrent client
-        Logger::debug(Category::HandleNotWorking, "Getting torrents...");
+        debug!(Category::HandleNotWorking, "Getting torrents...");
         let torrents = self.torrent_manager.get_all_torrents().await.context("Failed to get all torrents")?;
-        Logger::debug(Category::HandleNotWorking, format!("Received {} torrents", torrents.len()).as_str());
+        debug!(Category::HandleNotWorking, "Received {} torrents", torrents.len());
 
         // Get torrent trackers
-        Logger::debug(Category::HandleNotWorking, "Getting torrent trackers...");
+        debug!(Category::HandleNotWorking, "Getting torrent trackers...");
         let torrent_trackers: HashMap<String, Vec<Tracker>> = Receiver::get_torrent_trackers(self.torrent_manager.clone(), &torrents, &self.config).await?;
-        Logger::debug(Category::HandleNotWorking, "Received torrent trackers");
+        debug!(Category::HandleNotWorking, "Received torrent trackers");
 
         // Get torrents from torrent client with criteria
-        Logger::debug(Category::HandleNotWorking, "Checking torrents for criteria...");
+        debug!(Category::HandleNotWorking, "Checking torrents for criteria...");
         let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(&torrents, &torrent_trackers, &self.config).await?;
-        Logger::debug(Category::HandleNotWorking, "Done checking torrents for criteria");
+        debug!(Category::HandleNotWorking, "Done checking torrents for criteria");
 
-        Logger::info(
+        info!(
             Category::HandleNotWorking,
-            format!("{} torrents meet criteria", torrents_criteria.values().filter(|(_, is_criteria_met)| *is_criteria_met).count()).as_str(),
+            "{} torrents meet criteria",
+            torrents_criteria.values().filter(|(_, is_criteria_met)| *is_criteria_met).count(),
         );
 
         // Striking
-        Logger::debug(Category::HandleNotWorking, "Striking torrents...");
+        debug!(Category::HandleNotWorking, "Striking torrents...");
         let mut strike_utils = StrikeUtils::new()?;
         let limit_reached_torrents = Striker::strike_torrents(&mut strike_utils, &torrents_criteria, &self.config)?;
-        Logger::debug(Category::HandleNotWorking, "Done striking torrents");
+        debug!(Category::HandleNotWorking, "Done striking torrents");
 
-        Logger::info(
-            Category::HandleNotWorking,
-            format!("{} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str(),
-        );
+        info!(Category::HandleNotWorking, "{} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len(),);
 
         // Go through torrents
         for torrent in &limit_reached_torrents {
             // Log
-            Logger::info(Category::HandleNotWorking, format!("Torrent not working: {}", torrent.name()).as_str());
+            info!(Category::HandleNotWorking, "Torrent not working: {}", torrent.name());
 
             // Notification
             if *self.config.notification().on_job_action() {
@@ -90,9 +89,9 @@ impl HandleNotWorking {
         }
 
         // Clean db
-        Logger::debug(Category::HandleNotWorking, "Cleaning db...");
+        debug!(Category::HandleNotWorking, "Cleaning db...");
         self.clean_db(&mut strike_utils, &torrents_criteria, &limit_reached_torrents)?;
-        Logger::debug(Category::HandleNotWorking, "Cleaned db");
+        debug!(Category::HandleNotWorking, "Cleaned db");
 
         // Logout
         self.torrent_manager.logout().await.context("Failed to logout of torrent client")?;
@@ -126,7 +125,7 @@ impl HandleNotWorking {
             }
         }
 
-        Logger::debug(Category::HandleNotWorking, format!("Deleting {} hashes", hashes_to_remove.len()).as_str());
+        debug!(Category::HandleNotWorking, "Deleting {} hashes", hashes_to_remove.len());
 
         strike_utils.delete(StrikeType::HandleNotWorking, hashes_to_remove).context("Failed to delete hashes")?;
 

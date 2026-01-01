@@ -1,10 +1,6 @@
 use std::{fs, path::Path};
 
-use crate::{
-    config::Config,
-    jobs::enums::action_type::ActionType,
-    logger::{enums::category::Category, logger::Logger},
-};
+use crate::{config::Config, info, jobs::enums::action_type::ActionType, logger::enums::category::Category, warn};
 
 pub struct ActionTaker;
 
@@ -16,10 +12,10 @@ impl ActionTaker {
         let action_type = ActionType::from_str(config.jobs().handle_orphaned().action())?;
         match action_type {
             ActionType::Test => {
-                Logger::info(Category::HandleOrphaned, "Action: Test");
+                info!(Category::HandleOrphaned, "Action: Test");
             }
             ActionType::Stop => {
-                Logger::warn(Category::HandleOrphaned, "Stop action not supported on orphaned files since files cannot be stopped");
+                warn!(Category::HandleOrphaned, "Stop action not supported on orphaned files since files cannot be stopped");
             }
             ActionType::Delete => {
                 if path.is_file() {

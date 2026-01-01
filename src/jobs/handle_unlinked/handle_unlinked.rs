@@ -5,12 +5,13 @@ use reqwest::Url;
 
 use crate::{
     config::Config,
+    debug, info,
     jobs::{
         enums::strike_type::StrikeType,
         handle_unlinked::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
         utils::{discord_webhook_utils::DiscordWebhookUtils, strike_utils::StrikeUtils},
     },
-    logger::{enums::category::Category, logger::Logger},
+    logger::enums::category::Category,
     torrent_clients::{models::torrent::Torrent, torrent_manager::TorrentManager},
 };
 
@@ -41,26 +42,20 @@ impl HandleUnlinked {
         // Get torrents from torrent client with criteria
         let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(self.torrent_manager.clone(), &self.config, &self.torrents_path).await?;
 
-        Logger::info(
-            Category::HandleUnlinked,
-            format!("{} torrents meet criteria", torrents_criteria.values().filter(|(_, is_criteria_met)| *is_criteria_met).count()).as_str(),
-        );
+        info!(Category::HandleUnlinked, "{} torrents meet criteria", torrents_criteria.values().filter(|(_, is_criteria_met)| *is_criteria_met).count(),);
 
         // Striking
-        Logger::debug(Category::HandleUnlinked, "Striking torrents...");
+        debug!(Category::HandleUnlinked, "Striking torrents...");
         let mut strike_utils = StrikeUtils::new()?;
         let limit_reached_torrents = Striker::strike_torrents(&mut strike_utils, &torrents_criteria, &self.config)?;
-        Logger::debug(Category::HandleUnlinked, "Done striking torrents");
+        debug!(Category::HandleUnlinked, "Done striking torrents");
 
-        Logger::info(
-            Category::HandleUnlinked,
-            format!("{} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str(),
-        );
+        info!(Category::HandleUnlinked, "{} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len(),);
 
         // Go through torrents
         for torrent in &limit_reached_torrents {
             // Log
-            Logger::info(Category::HandleUnlinked, format!("Torrent unlinked: {}", torrent.name()).as_str());
+            info!(Category::HandleUnlinked, "Torrent unlinked: {}", torrent.name());
 
             // Notification
             if *self.config.notification().on_job_action() {
@@ -72,9 +67,9 @@ impl HandleUnlinked {
         }
 
         // Clean db
-        Logger::debug(Category::HandleUnlinked, "Cleaning db...");
+        debug!(Category::HandleUnlinked, "Cleaning db...");
         self.clean_db(&mut strike_utils, &torrents_criteria, &limit_reached_torrents)?;
-        Logger::debug(Category::HandleUnlinked, "Cleaned db");
+        debug!(Category::HandleUnlinked, "Cleaned db");
 
         // Logout
         self.torrent_manager.logout().await.context("Failed to logout of torrent client")?;
@@ -108,7 +103,7 @@ impl HandleUnlinked {
             }
         }
 
-        Logger::debug(Category::HandleUnlinked, format!("Deleting {} hashes", hashes_to_remove.len()).as_str());
+        debug!(Category::HandleUnlinked, "Deleting {} hashes", hashes_to_remove.len());
 
         strike_utils.delete(StrikeType::HandleUnlinked, hashes_to_remove).context("Failed to delete hashes")?;
 
