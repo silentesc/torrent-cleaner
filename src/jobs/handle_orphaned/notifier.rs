@@ -6,7 +6,8 @@ use chrono::{DateTime, Local};
 use crate::{
     config::Config,
     jobs::utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField},
-    logger::{enums::category::Category, logger::Logger},
+    logger::enums::category::Category,
+    warn,
 };
 
 pub struct Notifier;
@@ -32,7 +33,7 @@ impl Notifier {
         } else if path.is_dir() {
             "Found orphaned **folder**"
         } else {
-            Logger::warn(Category::HandleOrphaned, format!("Path is not file or folder: {}", path.display()).as_str());
+            warn!(Category::HandleOrphaned, "Path is not file or folder: {}", path.display());
             "Found orphaned path which isn't file or folder?"
         };
 

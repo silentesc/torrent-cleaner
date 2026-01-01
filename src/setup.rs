@@ -2,6 +2,7 @@ use std::{env, fs, path::Path, sync::Arc};
 
 use crate::{
     config::Config,
+    debug, error, info,
     job_manager::JobManager,
     jobs::utils::strike_utils::StrikeUtils,
     logger::{
@@ -17,11 +18,11 @@ impl Setup {
     pub fn setup() -> Result<JobManager, anyhow::Error> {
         // Setup logging
         Setup::setup_logging();
-        Logger::debug(Category::Setup, "Logger has been loaded");
+        debug!(Category::Setup, "Logger has been loaded");
 
         const APP_NAME: &str = env!("CARGO_PKG_NAME");
         const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-        Logger::info(Category::Setup, format!("Running {} v{}", APP_NAME, APP_VERSION).as_str());
+        info!(Category::Setup, "Running {} v{}", APP_NAME, APP_VERSION);
 
         // Load env variables
         let torrents_path = match env::var("TORRENTS_PATH") {
@@ -33,7 +34,7 @@ impl Setup {
 
         // Setup Config
         let config = Setup::get_config()?;
-        Logger::debug(Category::Setup, "Config has been loaded");
+        debug!(Category::Setup, "Config has been loaded");
 
         // Create strike utils table
         if let Err(e) = Setup::check_create_db() {
@@ -59,7 +60,7 @@ impl Setup {
         let log_level = match env::var("LOG_LEVEL") {
             Ok(log_level) => log_level,
             Err(e) => {
-                Logger::error(Category::Setup, format!("Failed to get log_level env variable, using default (info): {:#}", e).as_str());
+                error!(Category::Setup, "Failed to get log_level env variable, using default (info): {:#}", e);
                 LogLevel::Info.to_string()
             }
         };
