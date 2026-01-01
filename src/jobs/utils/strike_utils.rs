@@ -86,12 +86,10 @@ impl StrikeUtils {
             Some(hashes) => {
                 let placeholders = std::iter::repeat("?").take(hashes.len()).collect::<Vec<&str>>().join(",");
                 let sql = format!("SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1 AND hash IN ({})", placeholders);
-                trace!(Category::Striker, "get_strikes sql: {}", sql);
                 self.conn.prepare(sql.as_str()).context("Failed to prepare get_strikes select")?
             }
             None => {
                 let sql = "SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1";
-                trace!(Category::Striker, "get_strikes sql: {}", sql);
                 self.conn.prepare(sql).context("Failed to prepare get_strikes select")?
             }
         };
