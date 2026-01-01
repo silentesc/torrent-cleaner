@@ -39,7 +39,7 @@ impl HandleOrphaned {
         let torrent_paths = Receiver::get_torrent_paths(self.torrent_manager.clone()).await?;
 
         // Get orphaned_path_strings
-        let orphaned_path_strings = Receiver::get_orphaned_path_strings(&torrent_paths, &self.torrents_path).await?;
+        let orphaned_path_strings = Receiver::get_orphaned_path_strings(&torrent_paths, &self.torrents_path, *self.config.jobs().handle_orphaned().protect_external_hardlinks()).await?;
 
         let mut strike_utils = StrikeUtils::new()?;
 

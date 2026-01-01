@@ -119,6 +119,7 @@ pub struct HandleOrphaned {
     interval_hours: i32,
     min_strike_days: i32,
     required_strikes: i32,
+    protect_external_hardlinks: bool,
     action: String,
 }
 
@@ -131,6 +132,9 @@ impl HandleOrphaned {
     }
     pub fn required_strikes(&self) -> i32 {
         self.required_strikes
+    }
+    pub fn protect_external_hardlinks(&self) -> &bool {
+        &self.protect_external_hardlinks
     }
     pub fn action(&self) -> &str {
         &self.action
@@ -200,6 +204,7 @@ impl Config {
                     interval_hours: 13,
                     min_strike_days: 3,
                     required_strikes: 3,
+                    protect_external_hardlinks: true,
                     action: String::from("test"),
                 },
             },
