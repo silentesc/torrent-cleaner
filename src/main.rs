@@ -63,6 +63,10 @@ mod jobs {
     }
 }
 
+mod utils {
+    pub mod db_manager;
+}
+
 mod config;
 mod job_manager;
 mod setup;

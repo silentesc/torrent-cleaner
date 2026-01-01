@@ -2,7 +2,7 @@ use anyhow::Context;
 use chrono::{Duration, Local, NaiveDate};
 use rusqlite::{Connection, params};
 
-use crate::{jobs::enums::strike_type::StrikeType, logger::enums::category::Category, trace, warn};
+use crate::{jobs::enums::strike_type::StrikeType, logger::enums::category::Category, trace, utils::db_manager::DbManager, warn};
 
 #[derive(Clone)]
 pub struct StrikeRecord {
@@ -52,29 +52,8 @@ pub struct StrikeUtils {
 
 impl StrikeUtils {
     pub fn new() -> Result<Self, anyhow::Error> {
-        let conn = Connection::open("/config/database.db").context("Failed to open connection to database")?;
+        let conn = DbManager::get_new_conn()?;
         Ok(Self { conn })
-    }
-
-    /**
-     * Create tables
-     */
-    pub fn check_create_tables(&mut self) -> Result<(), anyhow::Error> {
-        self.conn
-            .execute(
-                "CREATE TABLE IF NOT EXISTS strikes (
-                    id INTEGER PRIMARY KEY,
-                    strike_type VARCHAR(255) NOT NULL,
-                    hash VARCHAR(255) NOT NULL,
-                    strikes INTEGER NOT NULL,
-                    strike_days INTEGER NOT NULL,
-                    last_strike_date TEXT NOT NULL,
-                    UNIQUE (strike_type, hash)
-                )",
-                (),
-            )
-            .context("Failed to create strikes table")?;
-        Ok(())
     }
 
     /**
