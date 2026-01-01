@@ -27,7 +27,7 @@ impl Setup {
         let torrents_path = match env::var("TORRENTS_PATH") {
             Ok(torrents_path) => torrents_path,
             Err(e) => {
-                return Err(anyhow::anyhow!("Failed to get TORRENTS_PATH env variable: {:#}", e));
+                anyhow::bail!("Failed to get TORRENTS_PATH env variable: {:#}", e);
             }
         };
 
@@ -37,14 +37,14 @@ impl Setup {
 
         // Create strike utils table
         if let Err(e) = Setup::check_create_db() {
-            return Err(anyhow::anyhow!("Failed to check create db: {:#}", e));
+            anyhow::bail!("Failed to check create db: {:#}", e);
         }
 
         // Setup torrent_manager
         let torrent_manager = match Setup::setup_torrent_manager(config.clone()) {
             Ok(torrent_manager) => torrent_manager,
             Err(e) => {
-                return Err(anyhow::anyhow!("Failed to setup torrent_manager: {:#}", e));
+                anyhow::bail!("Failed to setup torrent_manager: {:#}", e);
             }
         };
 
@@ -73,11 +73,11 @@ impl Setup {
             match serde_json::to_string_pretty(&default_config) {
                 Ok(json) => {
                     if let Err(e) = fs::write(config_path, json) {
-                        return Err(anyhow::anyhow!("Failed to write default config json string to config file: {:#}", e));
+                        anyhow::bail!("Failed to write default config json string to config file: {:#}", e);
                     }
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!("Failed to convert default config into pretty string: {:#}", e));
+                    anyhow::bail!("Failed to convert default config into pretty string: {:#}", e);
                 }
             }
         }
@@ -87,12 +87,12 @@ impl Setup {
                 config = match serde_json::from_str(&contents) {
                     Ok(config) => config,
                     Err(e) => {
-                        return Err(anyhow::anyhow!("Failed to create config object from config file contents: {:#}", e));
+                        anyhow::bail!("Failed to create config object from config file contents: {:#}", e);
                     }
                 };
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Failed to read string from config file: {:#}", e));
+                anyhow::bail!("Failed to read string from config file: {:#}", e);
             }
         }
         Ok(config)
@@ -103,11 +103,11 @@ impl Setup {
         match StrikeUtils::new() {
             Ok(mut strike_utils) => {
                 if let Err(e) = strike_utils.check_create_tables() {
-                    return Err(anyhow::anyhow!("Failed to create tables: {:#}", e));
+                    anyhow::bail!("Failed to create tables: {:#}", e);
                 }
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Failed to init strike utils: {:#}", e));
+                anyhow::bail!("Failed to init strike utils: {:#}", e);
             }
         }
         Ok(())
@@ -119,13 +119,13 @@ impl Setup {
                 let qbittorrent_client = match Qbittorrent::new(config.torrent_client().base_url(), config.torrent_client().username(), config.torrent_client().password()) {
                     Ok(q) => q,
                     Err(e) => {
-                        return Err(anyhow::anyhow!("Failed to create qbittorrent: {:#}", e));
+                        anyhow::bail!("Failed to create qbittorrent: {:#}", e);
                     }
                 };
                 Arc::new(TorrentManager::new(AnyClient::Qbittorrent(qbittorrent_client)))
             }
             _ => {
-                return Err(anyhow::anyhow!("No client specified"));
+                anyhow::bail!("No client specified");
             }
         };
         Ok(torrent_manager)

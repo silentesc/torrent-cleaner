@@ -107,17 +107,17 @@ impl DiscordWebhookUtils {
                     // Error: Unexpected
                     else {
                         self.request_history.push((Local::now().timestamp(), false));
-                        return Err(anyhow::anyhow!(
+                        anyhow::bail!(
                             "Sending discord notification failed with status code {}: {}",
                             response.status(),
                             response.text().await.unwrap_or_default(),
-                        ));
+                        );
                     }
                 }
                 // Request itself failed
                 Err(e) => {
                     self.request_history.push((Local::now().timestamp(), false));
-                    return Err(anyhow::anyhow!("Sending discord notification failed: {:#}", e));
+                    anyhow::bail!("Sending discord notification failed: {:#}", e);
                 }
             }
         }

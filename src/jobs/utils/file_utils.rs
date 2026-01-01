@@ -31,11 +31,11 @@ impl FileUtils {
             let nlink = path_metadata.nlink();
             if let Some(known_links_count) = known_hardlinks.get(&ino) {
                 if *known_links_count > nlink {
-                    return Err(anyhow::anyhow!("{} | known_hardlinks_count ({}) is bigger than nlink ({}) which is impossible", path_str, known_links_count, nlink));
+                    anyhow::bail!("{} | known_hardlinks_count ({}) is bigger than nlink ({}) which is impossible", path_str, known_links_count, nlink);
                 }
                 return Ok(*known_links_count != nlink);
             } else {
-                return Err(anyhow::anyhow!("Didn't find file in known_hardlinks for {}", path_str));
+                anyhow::bail!("Didn't find file in known_hardlinks for {}", path_str);
             }
         }
         // Handle dir dir_path_str
@@ -49,20 +49,20 @@ impl FileUtils {
                     match known_hardlinks.get(&ino) {
                         Some(known_links_count) => {
                             if *known_links_count > nlink {
-                                return Err(anyhow::anyhow!("{} | known_hardlinks_count ({}) is bigger than nlink ({}) which is impossible", path_str, known_links_count, nlink));
+                                anyhow::bail!("{} | known_hardlinks_count ({}) is bigger than nlink ({}) which is impossible", path_str, known_links_count, nlink);
                             }
                             if *known_links_count < nlink {
                                 return Ok(true);
                             }
                         }
-                        None => return Err(anyhow::anyhow!("Didn't find file in known_hardlinks for {}", path_str)),
+                        None => anyhow::bail!("Didn't find file in known_hardlinks for {}", path_str),
                     }
                 }
             }
         }
         // Handle edge case not file or dir (should not happen)
         else {
-            return Err(anyhow::anyhow!("path is neither file or dir: {}", path_str));
+            anyhow::bail!("path is neither file or dir: {}", path_str);
         }
 
         Ok(false)

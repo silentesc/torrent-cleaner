@@ -97,10 +97,10 @@ impl Qbittorrent {
                     sleep(delay).await;
                     continue;
                 }
-                Err(e) => return Err(anyhow::anyhow!(e)),
+                Err(e) => anyhow::bail!(e),
             }
         }
-        Err(anyhow::anyhow!("Request to failed after {} tries", max_retries))
+        anyhow::bail!("Request to failed after {} tries", max_retries);
     }
 
     /**
@@ -124,7 +124,7 @@ impl Qbittorrent {
                         Logger::info(Category::Qbittorrent, "Logged in");
                         return Ok(());
                     }
-                    None => return Err(anyhow::anyhow!("Failed to authenticate to qbittorrent")),
+                    None => anyhow::bail!("Failed to authenticate to qbittorrent"),
                 },
                 Err(_) if attempt < max_retries => {
                     Logger::error(
@@ -135,11 +135,11 @@ impl Qbittorrent {
                     continue;
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!("Failed to login to qbittorrent on try {}/{}: {:#}", attempt, max_retries, e));
+                    anyhow::bail!("Failed to login to qbittorrent on try {}/{}: {:#}", attempt, max_retries, e);
                 }
             }
         }
-        Err(anyhow::anyhow!("Login request to qbittorrent failed"))
+        anyhow::bail!("Login request to qbittorrent failed");
     }
 
     /**

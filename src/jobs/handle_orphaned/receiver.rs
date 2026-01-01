@@ -51,7 +51,7 @@ impl Receiver {
                             is_orphan = true;
                         }
                     } else {
-                        return Err(anyhow::anyhow!("Failed to get string from path (may due to non-UTF8 path: {:?}", path));
+                        anyhow::bail!("Failed to get string from path (may due to non-UTF8 path: {:?}", path);
                     }
                 }
                 // Check for external hardlinks
@@ -68,7 +68,7 @@ impl Receiver {
             }
             // Handle edge case not file or dir (should not happen)
             else {
-                return Err(anyhow::anyhow!("path is neither file or dir: {:?}", path));
+                anyhow::bail!("path is neither file or dir: {:?}", path);
             }
 
             if is_orphan {
@@ -76,7 +76,7 @@ impl Receiver {
                     Logger::debug(Category::HandleOrphaned, format!("Path is orphaned: {}", path_str).as_str());
                     orphaned_path_strings.insert(path_str.to_string());
                 } else {
-                    return Err(anyhow::anyhow!("Failed to get string from path (may due to non-UTF8 path: {:?}", path));
+                    anyhow::bail!("Failed to get string from path (may due to non-UTF8 path: {:?}", path);
                 }
             }
         }
