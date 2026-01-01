@@ -1,4 +1,9 @@
-use std::{collections::HashSet, fs, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashSet,
+    fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use anyhow::Context;
 use walkdir::WalkDir;
@@ -55,6 +60,9 @@ impl Receiver {
         Ok(orphaned_path_strings)
     }
 
+    /**
+     * Get dirs & files (including content) of all torrents
+     */
     pub async fn get_torrent_paths(torrent_manager: Arc<TorrentManager>) -> Result<HashSet<PathBuf>, anyhow::Error> {
         // Get torrents from torrent client
         Logger::debug(Category::HandleOrphaned, "Getting torrents...");
@@ -77,26 +85,14 @@ impl Receiver {
                 );
                 continue;
             }
-            for entry in WalkDir::new(torrent.content_path()) {
-                let entry_result = entry.context("Failed to get entry_result")?;
-                let path = entry_result.path();
-                let file_type = entry_result.file_type();
-
-                // Check for file
-                if file_type.is_file() {
-                    torrent_paths.insert(entry_result.into_path());
+            let torrent_files = torrent_manager.get_torrent_files(torrent.hash()).await.context("Failed to get torrent files")?;
+            for torrent_file in torrent_files {
+                let path_str = format!("{}/{}", torrent.save_path(), torrent_file.name());
+                let path_buf = Path::new(&path_str).to_path_buf();
+                if let Some(p) = path_buf.parent() {
+                    torrent_paths.insert(p.to_path_buf());
                 }
-                // Check for empty dir
-                else if file_type.is_dir() {
-                    let mut entries = fs::read_dir(path).context("Failed to read dir")?;
-                    if entries.next().is_none() {
-                        torrent_paths.insert(entry_result.into_path());
-                    }
-                }
-                // Handle edge case not file or dir (should not happen)
-                else {
-                    return Err(anyhow::anyhow!("path is neither file or dir: {:?}", path));
-                }
+                torrent_paths.insert(path_buf);
             }
         }
         Logger::debug(Category::HandleOrphaned, format!("Received {} unique torrent paths", torrent_paths.len()).as_str());

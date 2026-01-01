@@ -16,6 +16,7 @@ mod torrent_clients {
         pub mod tracker_status;
     }
     pub mod models {
+        pub mod torrent_file;
         pub mod torrent;
         pub mod tracker;
     }

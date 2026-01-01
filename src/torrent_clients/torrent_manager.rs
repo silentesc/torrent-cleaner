@@ -1,6 +1,6 @@
 use crate::torrent_clients::{
     enums::any_client::AnyClient,
-    models::{torrent::Torrent, tracker::Tracker},
+    models::{torrent::Torrent, torrent_file::TorrentFile, tracker::Tracker},
     traits::torrent_client::TorrentClient,
 };
 
@@ -31,6 +31,10 @@ impl TorrentManager {
 
     pub async fn get_torrent_trackers(&self, torrent_hash: &str) -> Result<Vec<Tracker>, anyhow::Error> {
         self.torrent_client.get_torrent_trackers(torrent_hash).await
+    }
+
+    pub async fn get_torrent_files(&self, torrent_hash: &str) -> Result<Vec<TorrentFile>, anyhow::Error> {
+        self.torrent_client.get_torrent_files(torrent_hash).await
     }
 
     pub async fn stop_torrent(&self, torrent_hash: &str) -> Result<(), anyhow::Error> {
