@@ -43,7 +43,8 @@ impl Receiver {
     }
 
     /**
-     * Get torrents criteria
+     * Get torrents and if they match criteria
+     * Returns: HashMap<String, (Torrent, bool)> | HashMap<torrent_hash, (Torrent, is_criteria_met))>
      */
     pub async fn get_torrents_criteria(torrents: &Vec<Torrent>, torrent_trackers: &HashMap<String, Vec<Tracker>>, config: &Config) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
         // Check torrents for criteria

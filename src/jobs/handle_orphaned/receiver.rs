@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     fs,
     path::{Path, PathBuf},
     sync::Arc,
@@ -13,16 +13,21 @@ use crate::{debug, info, jobs::utils::file_utils::FileUtils, logger::enums::cate
 pub struct Receiver;
 
 impl Receiver {
+    /**
+     * Get all paths that are not in torrent_paths
+     * Returns HashSet of path strings
+     */
     pub async fn get_orphaned_path_strings(torrent_paths: &HashSet<PathBuf>, torrents_path: &str, protect_external_hardlinks: bool) -> Result<HashSet<String>, anyhow::Error> {
-        // Get known hardlinks
-        debug!(Category::HandleOrphaned, "Getting known torrent hardlinks...");
-        let known_hardlinks: HashMap<u64, u64> = FileUtils::get_known_hardlinks(torrents_path)?;
-        debug!(
-            Category::HandleOrphaned,
-            "Found {} unique files ({} total) in torrent folder",
-            known_hardlinks.len(),
-            known_hardlinks.values().sum::<u64>(),
-        );
+        // Get known_hardlinks only if protect_external_hardlinks is true
+        let known_hardlinks_option = protect_external_hardlinks
+            .then(|| {
+                debug!(Category::HandleOrphaned, "Getting known torrent hardlinks...");
+                FileUtils::get_known_hardlinks(torrents_path)
+            })
+            .transpose()?
+            .inspect(|kh| {
+                debug!(Category::HandleOrphaned, "Found {} unique files ({} total) in torrent folder", kh.len(), kh.values().sum::<u64>());
+            });
 
         // Get paths not present in any torrents
         debug!(Category::HandleOrphaned, "Getting orphaned paths (files/folders that are not part of any torrent)...");
@@ -41,15 +46,14 @@ impl Receiver {
             // Check for file
             if file_type.is_file() {
                 if protect_external_hardlinks {
-                    if let Some(path_str) = path.to_str() {
-                        let has_external_hardlinks = FileUtils::has_external_hardlinks(&known_hardlinks, path_str).context("get_orphaned_path_strings: Failed to get external hardlinks")?;
-                        if has_external_hardlinks {
-                            debug!(Category::HandleOrphaned, "Ignoring path (has external hardlinks) {}", path_str);
-                        } else {
-                            is_orphan = true;
-                        }
+                    let path_str = path.to_str().ok_or(anyhow::anyhow!("Failed to get string from path (may due to non-UTF8 path: {:?}", path))?;
+                    let known_hardlinks = known_hardlinks_option.as_ref().ok_or(anyhow::anyhow!("known_hardlinks_option is None which should be impossible"))?;
+
+                    let has_external_hardlinks = FileUtils::has_external_hardlinks(known_hardlinks, path_str).context("get_orphaned_path_strings: Failed to get external hardlinks")?;
+                    if has_external_hardlinks {
+                        debug!(Category::HandleOrphaned, "Ignoring path (has external hardlinks) {}", path_str);
                     } else {
-                        anyhow::bail!("Failed to get string from path (may due to non-UTF8 path: {:?}", path);
+                        is_orphan = true;
                     }
                 }
                 // Check for external hardlinks

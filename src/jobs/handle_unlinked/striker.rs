@@ -15,6 +15,7 @@ pub struct Striker;
 impl Striker {
     /**
      * Strike torrents
+     * Returns: Vec of Torrents that reached the strike limit
      */
     pub fn strike_torrents(strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, config: &Config) -> Result<Vec<Torrent>, anyhow::Error> {
         // Get torrent hashes of torrents that meet criteria

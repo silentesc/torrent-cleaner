@@ -14,6 +14,10 @@ use crate::{
 pub struct Receiver;
 
 impl Receiver {
+    /**
+     * Get torrents and if they match criteria
+     * Returns: HashMap<String, (Torrent, bool)> | HashMap<torrent_hash, (Torrent, is_criteria_met))>
+     */
     pub async fn get_torrents_criteria(torrent_manager: Arc<TorrentManager>, config: &Config, torrents_path: &String) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
         // Get torrents from torrent client
         debug!(Category::HandleUnlinked, "Getting torrents...");
