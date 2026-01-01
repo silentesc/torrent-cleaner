@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
     sync::Arc,
@@ -9,6 +9,7 @@ use anyhow::Context;
 use walkdir::WalkDir;
 
 use crate::{
+    jobs::utils::file_utils::FileUtils,
     logger::{enums::category::Category, logger::Logger},
     torrent_clients::torrent_manager::TorrentManager,
 };
@@ -16,7 +17,15 @@ use crate::{
 pub struct Receiver;
 
 impl Receiver {
-    pub async fn get_orphaned_path_strings(torrent_paths: &HashSet<PathBuf>, torrents_path: &str) -> Result<HashSet<String>, anyhow::Error> {
+    pub async fn get_orphaned_path_strings(torrent_paths: &HashSet<PathBuf>, torrents_path: &str, protect_external_hardlinks: bool) -> Result<HashSet<String>, anyhow::Error> {
+        // Get known hardlinks
+        Logger::debug(Category::HandleOrphaned, "Getting known torrent hardlinks...");
+        let known_hardlinks: HashMap<u64, u64> = FileUtils::get_known_hardlinks(torrents_path)?;
+        Logger::debug(
+            Category::HandleOrphaned,
+            format!("Found {} unique files ({} total) in torrent folder", known_hardlinks.len(), known_hardlinks.values().sum::<u64>()).as_str(),
+        );
+
         // Get paths not present in any torrents
         Logger::debug(Category::HandleOrphaned, "Getting orphaned paths (files/folders that are not part of any torrent)...");
         let mut orphaned_path_strings: HashSet<String> = HashSet::new();
@@ -33,7 +42,22 @@ impl Receiver {
 
             // Check for file
             if file_type.is_file() {
-                is_orphan = true;
+                if protect_external_hardlinks {
+                    if let Some(path_str) = path.to_str() {
+                        let has_external_hardlinks = FileUtils::has_external_hardlinks(&known_hardlinks, path_str).context("get_orphaned_path_strings: Failed to get external hardlinks")?;
+                        if has_external_hardlinks {
+                            Logger::debug(Category::HandleOrphaned, format!("Ignoring path (has external hardlinks) {}", path_str).as_str());
+                        } else {
+                            is_orphan = true;
+                        }
+                    } else {
+                        return Err(anyhow::anyhow!("Failed to get string from path (may due to non-UTF8 path: {:?}", path));
+                    }
+                }
+                // Check for external hardlinks
+                else {
+                    is_orphan = true;
+                }
             }
             // Check for empty dir
             else if file_type.is_dir() {
@@ -49,13 +73,14 @@ impl Receiver {
 
             if is_orphan {
                 if let Some(path_str) = path.to_str() {
+                    Logger::debug(Category::HandleOrphaned, format!("Path is orphaned: {}", path_str).as_str());
                     orphaned_path_strings.insert(path_str.to_string());
                 } else {
                     return Err(anyhow::anyhow!("Failed to get string from path (may due to non-UTF8 path: {:?}", path));
                 }
             }
         }
-        Logger::debug(Category::HandleOrphaned, format!("Received {} orphaned paths", orphaned_path_strings.len()).as_str());
+        Logger::info(Category::HandleOrphaned, format!("Received {} orphaned paths", orphaned_path_strings.len()).as_str());
 
         Ok(orphaned_path_strings)
     }
