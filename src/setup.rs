@@ -4,12 +4,12 @@ use crate::{
     config::Config,
     debug, error, info,
     job_manager::JobManager,
-    jobs::utils::strike_utils::StrikeUtils,
     logger::{
         enums::{category::Category, log_level::LogLevel},
         logger::Logger,
     },
     torrent_clients::{adapters::qbittorrent::Qbittorrent, enums::any_client::AnyClient, torrent_manager::TorrentManager},
+    utils::db_manager::DbManager,
 };
 
 pub struct Setup;
@@ -37,7 +37,7 @@ impl Setup {
         debug!(Category::Setup, "Config has been loaded");
 
         // Create strike utils table
-        if let Err(e) = Setup::check_create_db() {
+        if let Err(e) = DbManager::check_create_tables() {
             anyhow::bail!("Failed to check create db: {:#}", e);
         }
 
@@ -97,21 +97,6 @@ impl Setup {
             }
         }
         Ok(config)
-    }
-
-    fn check_create_db() -> Result<(), anyhow::Error> {
-        // Create strike utils table
-        match StrikeUtils::new() {
-            Ok(mut strike_utils) => {
-                if let Err(e) = strike_utils.check_create_tables() {
-                    anyhow::bail!("Failed to create tables: {:#}", e);
-                }
-            }
-            Err(e) => {
-                anyhow::bail!("Failed to init strike utils: {:#}", e);
-            }
-        }
-        Ok(())
     }
 
     fn setup_torrent_manager(config: Config) -> Result<Arc<TorrentManager>, anyhow::Error> {
