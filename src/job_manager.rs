@@ -47,18 +47,7 @@ impl JobManager {
             *self.config.notification().on_job_error(),
             discord_webhook_url.clone(),
             handle_unlinked.clone(),
-            |handler: Arc<HandleUnlinked>, notify_on_job_error: bool, discord_webhook_url: Option<Url>| async move {
-                if let Err(e) = handler.run().await {
-                    error!(Category::JobManager, "Failed to run handle_unlinked: {:#}", e);
-                    // Notify on discord
-                    if notify_on_job_error {
-                        let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
-                        if let Err(e) = discord_webhook_utils.send_webhook_embed("Error", "`handle_unlinked` threw an error. Please check logs for more details.", vec![]).await {
-                            error!(Category::JobManager, "Error while sending discord webhook error message: {:#}", e);
-                        }
-                    }
-                }
-            },
+            |handler: Arc<HandleUnlinked>| async move { handler.run().await },
         );
 
         self.spawn_job(
@@ -68,21 +57,7 @@ impl JobManager {
             *self.config.notification().on_job_error(),
             discord_webhook_url.clone(),
             handle_not_working.clone(),
-            |handler: Arc<HandleNotWorking>, notify_on_job_error: bool, discord_webhook_url: Option<Url>| async move {
-                if let Err(e) = handler.run().await {
-                    error!(Category::JobManager, "Failed to run handle_not_working: {:#}", e);
-                    // Notify on discord
-                    if notify_on_job_error {
-                        let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
-                        if let Err(e) = discord_webhook_utils
-                            .send_webhook_embed("Error", "`handle_not_working` threw an error. Please check logs for more details.", vec![])
-                            .await
-                        {
-                            error!(Category::JobManager, "Error while sending discord webhook error message: {:#}", e);
-                        }
-                    }
-                }
-            },
+            |handler: Arc<HandleNotWorking>| async move { handler.run().await },
         );
 
         self.spawn_job(
@@ -92,26 +67,15 @@ impl JobManager {
             *self.config.notification().on_job_error(),
             discord_webhook_url.clone(),
             handle_orphaned.clone(),
-            |handler: Arc<HandleOrphaned>, notify_on_job_error: bool, discord_webhook_url: Option<Url>| async move {
-                if let Err(e) = handler.run().await {
-                    error!(Category::JobManager, "Failed to run handle_orphaned: {:#}", e);
-                    // Notify on discord
-                    if notify_on_job_error {
-                        let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url);
-                        if let Err(e) = discord_webhook_utils.send_webhook_embed("Error", "`handle_orphaned` threw an error. Please check logs for more details.", vec![]).await {
-                            error!(Category::JobManager, "Error while sending discord webhook error message: {:#}", e);
-                        }
-                    }
-                }
-            },
+            |handler: Arc<HandleOrphaned>| async move { handler.run().await },
         );
     }
 
-    fn spawn_job<T, F, Fut>(&self, job_name: String, interval_hours: i32, default_interval_hours: i32, notify_on_job_error: bool, discord_webhook_url: Option<Url>, handler: Arc<T>, job_fn: F)
+    fn spawn_job<T, F, Fut>(&self, job_name: String, mut interval_hours: i32, default_interval_hours: i32, notify_on_job_error: bool, discord_webhook_url: Option<Url>, handler: Arc<T>, job_fn: F)
     where
         T: Send + Sync + 'static,
-        F: (Fn(Arc<T>, bool, Option<Url>) -> Fut) + Send + Sync + 'static,
-        Fut: std::future::Future<Output = ()> + Send + 'static,
+        F: (Fn(Arc<T>) -> Fut) + Send + Sync + 'static,
+        Fut: std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'static,
     {
         if interval_hours == -1 {
             return;
@@ -120,43 +84,65 @@ impl JobManager {
         let lock = self.job_lock.clone();
 
         tokio::spawn(async move {
-            // Get startup sleep
-            let startup_sleep_minutes = JobManager::get_startup_sleep_minutes(job_name.as_str(), interval_hours as i64);
-
-            // If interval_hours is 0 use default instead
-            let interval_hours = match interval_hours {
-                0 => default_interval_hours,
-                _ => interval_hours,
-            };
-
-            let last_run = JobManager::get_last_run(job_name.as_str()).unwrap_or(None).unwrap_or(NaiveDateTime::default());
-            info!(
-                Category::JobManager,
-                "Set up {} with interval of {} hours. Last run was {:.2} hours ago, next run in {:.2} hours",
-                job_name,
-                interval_hours,
-                (DateUtils::get_current_local_naive_datetime() - last_run).num_minutes() as f64 / 60.0,
-                startup_sleep_minutes as f64 / 60.0
-            );
-
-            // Startup sleep
-            sleep(Duration::from_mins(startup_sleep_minutes as u64)).await;
-
-            // Loop that runs job
             loop {
-                let start_time = std::time::Instant::now();
+                ///////////
+                // Sleep //
+                ///////////
+                if interval_hours == 0 {
+                    interval_hours = default_interval_hours;
+                } else {
+                    let last_run = JobManager::get_last_run(job_name.as_str()).unwrap_or(None).unwrap_or(NaiveDateTime::default());
+                    let sleep_minutes = JobManager::get_startup_sleep_minutes(job_name.as_str(), interval_hours as i64);
+
+                    info!(
+                        Category::JobManager,
+                        "{} (interval of {}h) last ran {:.2}h ago, next run in {:.2}h",
+                        job_name,
+                        interval_hours,
+                        (DateUtils::get_current_local_naive_datetime() - last_run).num_minutes() as f64 / 60.0,
+                        sleep_minutes as f64 / 60.0
+                    );
+
+                    // If interval_hours is 0 use default instead
+                    interval_hours = match interval_hours {
+                        0 => default_interval_hours,
+                        _ => interval_hours,
+                    };
+
+                    sleep(Duration::from_mins(sleep_minutes as u64)).await;
+                }
+
+                /////////////
+                // Run job //
+                /////////////
                 {
                     let _guard = lock.lock().await;
+
                     info!(Category::JobManager, "Starting {}...", job_name);
-                    job_fn(handler.clone(), notify_on_job_error, discord_webhook_url.clone()).await;
-                    if let Err(e) = JobManager::set_last_run(job_name.as_str()) {
-                        error!(Category::JobManager, "Error while setting last job run for {}: {:#}", job_name, e);
+
+                    // Set last job run, then run job and save result
+                    let result: Result<(), anyhow::Error> = (async || {
+                        JobManager::set_last_run(job_name.as_str())?;
+                        job_fn(handler.clone()).await?;
+                        Ok(())
+                    })()
+                    .await;
+
+                    // Check result for error and log & send discord message
+                    if let Err(e) = result {
+                        error!(Category::JobManager, "Failed to run handle_orphaned: {:#}", e);
+                        // Notify on discord
+                        if notify_on_job_error {
+                            let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url.clone());
+                            if let Err(e) = discord_webhook_utils
+                                .send_webhook_embed("Error", format!("`{}` threw an error. Please check logs for more details.", job_name).as_str(), vec![])
+                                .await
+                            {
+                                error!(Category::JobManager, "Error while sending discord webhook error message: {:#}", e);
+                            }
+                        }
                     }
                 }
-                let elapsed = start_time.elapsed();
-                let sleep_duration = Duration::from_hours(interval_hours as u64).saturating_sub(elapsed);
-                info!(Category::JobManager, "{} finished, next run in {} hours", job_name, interval_hours);
-                sleep(sleep_duration).await;
             }
         });
     }
@@ -173,6 +159,10 @@ impl JobManager {
             }
         }
     }
+
+    ///////////////////
+    // Private Utils //
+    ///////////////////
 
     fn get_startup_sleep_minutes(job_name: &str, interval_hours: i64) -> i64 {
         match JobManager::get_last_run(job_name) {
