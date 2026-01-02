@@ -6,7 +6,7 @@ use crate::{
     jobs::enums::strike_type::StrikeType,
     logger::enums::category::Category,
     trace,
-    utils::{date_utils::DateUtils, db_manager::DbManager},
+    utils::{date_utils::DateUtils, db_manager::Session},
     warn,
 };
 
@@ -58,7 +58,8 @@ pub struct StrikeUtils {
 
 impl StrikeUtils {
     pub fn new() -> Result<Self, anyhow::Error> {
-        let conn = DbManager::get_new_conn()?;
+        let session = Session::new()?;
+        let conn = session.into_conn().ok_or(anyhow::anyhow!("Failed to get conn from session"))?;
         Ok(Self { conn })
     }
 

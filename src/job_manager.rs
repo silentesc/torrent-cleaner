@@ -1,6 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
+use anyhow::Context;
+use chrono::{NaiveDateTime, TimeDelta};
 use reqwest::Url;
+use rusqlite::{OptionalExtension, params};
 use tokio::{sync::Mutex, time::sleep};
 
 use crate::{
@@ -9,6 +12,7 @@ use crate::{
     jobs::{handle_not_working::handle_not_working::HandleNotWorking, handle_orphaned::handle_orphaned::HandleOrphaned, handle_unlinked::handle_unlinked::HandleUnlinked, utils::discord_webhook_utils::DiscordWebhookUtils},
     logger::enums::category::Category,
     torrent_clients::torrent_manager::TorrentManager,
+    utils::{date_utils::DateUtils, db_manager::Session},
     warn,
 };
 
@@ -116,22 +120,38 @@ impl JobManager {
         let lock = self.job_lock.clone();
 
         tokio::spawn(async move {
-            info!(Category::JobManager, "Set up {}, next run in {} hours", job_name, interval_hours);
+            // Get startup sleep
+            let startup_sleep_minutes = JobManager::get_startup_sleep_minutes(job_name.as_str(), interval_hours as i64);
 
-            // Test/Sleep
-            let mut interval_hours = interval_hours;
-            if interval_hours != 0 {
-                sleep(Duration::from_hours(interval_hours as u64)).await;
-            } else {
-                interval_hours = default_interval_hours;
-            }
+            // If interval_hours is 0 use default instead
+            let interval_hours = match interval_hours {
+                0 => default_interval_hours,
+                _ => interval_hours,
+            };
 
+            let last_run = JobManager::get_last_run(job_name.as_str()).unwrap_or(None).unwrap_or(NaiveDateTime::default());
+            info!(
+                Category::JobManager,
+                "Set up {} with interval of {} hours. Last run was {:.2} hours ago, next run in {:.2} hours",
+                job_name,
+                interval_hours,
+                (DateUtils::get_current_local_naive_datetime() - last_run).num_minutes() as f64 / 60.0,
+                startup_sleep_minutes as f64 / 60.0
+            );
+
+            // Startup sleep
+            sleep(Duration::from_mins(startup_sleep_minutes as u64)).await;
+
+            // Loop that runs job
             loop {
                 let start_time = std::time::Instant::now();
                 {
                     let _guard = lock.lock().await;
                     info!(Category::JobManager, "Starting {}...", job_name);
                     job_fn(handler.clone(), notify_on_job_error, discord_webhook_url.clone()).await;
+                    if let Err(e) = JobManager::set_last_run(job_name.as_str()) {
+                        error!(Category::JobManager, "Error while setting last job run for {}: {:#}", job_name, e);
+                    }
                 }
                 let elapsed = start_time.elapsed();
                 let sleep_duration = Duration::from_hours(interval_hours as u64).saturating_sub(elapsed);
@@ -152,5 +172,64 @@ impl JobManager {
                 info!(Category::JobManager, "All jobs finished");
             }
         }
+    }
+
+    fn get_startup_sleep_minutes(job_name: &str, interval_hours: i64) -> i64 {
+        match JobManager::get_last_run(job_name) {
+            // Check for get_last_run error
+            Ok(last_run_naive_datetime_option) => match last_run_naive_datetime_option {
+                // Check for None
+                Some(last_run_naive_datetime) => {
+                    // If the last job run is bigger than interval_hours then it's long ago and should instantly run
+                    // Else the job would wait longer than it has to, so return the interval minus the time since the last run
+                    let time_delta = DateUtils::get_current_local_naive_datetime() - last_run_naive_datetime;
+                    if time_delta > TimeDelta::hours(interval_hours) {
+                        return 0;
+                    } else {
+                        return interval_hours * 60 - time_delta.num_minutes();
+                    }
+                }
+                None => {
+                    return interval_hours * 60;
+                }
+            },
+            Err(e) => {
+                error!(Category::JobManager, "Error while getting last job run for {}: {:#}", job_name, e);
+                return interval_hours * 60;
+            }
+        }
+    }
+
+    //////////////
+    // Db Stuff //
+    //////////////
+
+    fn get_last_run(job_name: &str) -> Result<Option<NaiveDateTime>, anyhow::Error> {
+        let session = Session::new()?;
+        let conn = session.into_conn().ok_or(anyhow::anyhow!("Failed to get conn from session"))?;
+
+        let mut stmt = conn.prepare("SELECT last_job_run FROM jobs WHERE job_name = ?1").context("Failed to prepare get last job run")?;
+        let last_job_run_str_option: Option<String> = stmt.query_one(params![job_name], |row| row.get(0)).optional().context("Failed to query last job run")?;
+
+        match last_job_run_str_option {
+            Some(last_job_run_str) => {
+                let last_job_run = DateUtils::parse_naive_datetime_from_str(last_job_run_str.as_str())?;
+                Ok(Some(last_job_run))
+            }
+            None => Ok(None),
+        }
+    }
+
+    fn set_last_run(job_name: &str) -> Result<(), anyhow::Error> {
+        let session = Session::new()?;
+        let conn = session.into_conn().ok_or(anyhow::anyhow!("Failed to get conn from session"))?;
+
+        conn.execute(
+            "INSERT OR REPLACE INTO jobs(job_name, last_job_run) VALUES(?1, ?2)",
+            params![job_name, DateUtils::convert_naive_datetime_to_string(DateUtils::get_current_local_naive_datetime())],
+        )
+        .context("Failed to insert or update last job run")?;
+
+        Ok(())
     }
 }
