@@ -107,6 +107,7 @@ The config will create itself on first start with recommended settings, but stil
       "interval_hours": 13, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 3,
       "required_strikes": 3,
+      "protect_external_hardlinks": true,
       "action": "test" // test, delete
     }
   }
