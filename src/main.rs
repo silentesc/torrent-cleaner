@@ -65,6 +65,7 @@ mod jobs {
 
 mod utils {
     pub mod db_manager;
+    pub mod date_utils;
 }
 
 mod config;

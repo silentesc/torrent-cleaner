@@ -1,8 +1,14 @@
 use anyhow::Context;
-use chrono::{Duration, Local, NaiveDate};
+use chrono::{Duration, NaiveDate};
 use rusqlite::{Connection, params};
 
-use crate::{jobs::enums::strike_type::StrikeType, logger::enums::category::Category, trace, utils::db_manager::DbManager, warn};
+use crate::{
+    jobs::enums::strike_type::StrikeType,
+    logger::enums::category::Category,
+    trace,
+    utils::{date_utils::DateUtils, db_manager::DbManager},
+    warn,
+};
 
 #[derive(Clone)]
 pub struct StrikeRecord {
@@ -16,7 +22,7 @@ pub struct StrikeRecord {
 
 impl StrikeRecord {
     pub fn is_limit_reached(&self, required_strikes: i32, min_strike_days: i32) -> bool {
-        let today_local = Local::now().date_naive();
+        let today_local = DateUtils::get_current_local_naive_date();
         let yesterday_local = today_local - Duration::days(1);
         if self.last_strike_date == today_local || self.last_strike_date == yesterday_local {
             return self.strikes >= required_strikes && self.strike_days >= min_strike_days;
@@ -86,7 +92,7 @@ impl StrikeUtils {
         // Map results
         .mapped(|row| {
             let last_strike_date_str: String = row.get(5)?;
-            let last_strike_date = NaiveDate::parse_from_str(&last_strike_date_str, "%Y-%m-%d").map_err(|e| rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new(e)))?;
+            let last_strike_date = DateUtils::parse_naive_date_from_str(&last_strike_date_str).map_err(|e| rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new(e)))?;
 
             Ok(StrikeRecord {
                 id: row.get(0)?,
@@ -143,13 +149,13 @@ impl StrikeUtils {
             match strike_records_for_hash.get(0) {
                 // If the strike record of the hash exists, handle multiple scenarios
                 Some(strike_record) => {
-                    let today_local = Local::now().date_naive();
+                    let today_local = DateUtils::get_current_local_naive_date();
                     let yesterday_local = today_local - Duration::days(1);
                     // If the strike record was last striked yesterday, increase everything
                     if strike_record.last_strike_date == yesterday_local {
                         tx.execute(
                             "UPDATE strikes SET strikes = strikes + 1, strike_days = strike_days + 1, last_strike_date = ?1 WHERE strike_type = ?2 AND hash = ?3",
-                            params![today_local.format("%Y-%m-%d").to_string(), strike_type.to_string(), hash],
+                            params![DateUtils::convert_naive_date_to_string(today_local), strike_type.to_string(), hash],
                         )
                         .context("Failed to insert new strike")?;
                         trace!(Category::Striker, "Hash {} ({}) was last striked yesterday, strikes and strike days have been increased", hash, strike_type.to_string(),);
@@ -164,7 +170,7 @@ impl StrikeUtils {
                     else {
                         tx.execute(
                             "UPDATE strikes SET strikes = 1, strike_days = 1, last_strike_date = ?1 WHERE strike_type = ?2 AND hash = ?3",
-                            params![today_local.format("%Y-%m-%d").to_string(), strike_type.to_string(), hash],
+                            params![DateUtils::convert_naive_date_to_string(today_local), strike_type.to_string(), hash],
                         )
                         .context("Failed to insert new strike")?;
                         trace!(Category::Striker, "Hash {} ({}) was not striked today or yesterday, everything has been reset", hash, strike_type.to_string(),);
@@ -174,7 +180,7 @@ impl StrikeUtils {
                 None => {
                     tx.execute(
                         "INSERT INTO strikes (strike_type, hash, strikes, strike_days, last_strike_date) VALUES (?1, ?2, ?3, ?4, ?5)",
-                        params![strike_type.to_string(), hash, 1, 1, Local::now().date_naive().format("%Y-%m-%d").to_string()],
+                        params![strike_type.to_string(), hash, 1, 1, DateUtils::convert_naive_date_to_string(DateUtils::get_current_local_naive_date())],
                     )
                     .context("Failed to insert new strike")?;
                     trace!(Category::Striker, "Hash {} ({}) has been striked for the first time", hash, strike_type.to_string());
