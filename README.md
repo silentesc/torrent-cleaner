@@ -8,30 +8,28 @@
   - qBittorrent
 
 # Jobs
-- HandleForgotten (handle torrents that are not present in the media dir):
+- HandleUnlinked (handle torrents that have no hardlinkes outside the torrent folder):
   - All features from above, plus:
     - Minimum seeding days (action only taken if torrent was **actively seeding** for x days)
-    - Supported actions:
-      - test (Log, Discord Notification)
-      - stop (Stop torrent, Log, Discord Notification)
-      - delete (Delete torrent (and files if possible), Log, Discord Notification)
+  - Supported actions:
+    - test (Log, Discord Notification)
+    - stop (Stop torrent, Log, Discord Notification)
+    - delete (Delete torrent (and files if possible), Log, Discord Notification)
 - HandleNotWorking (handle torrents that have no working trackers)
   - All features from above, plus:
     - If there is a working tracker, the striking process is reset
-    - Supported actions:
-      - test (Log, Discord Notification)
-      - stop (Stop torrent, Log, Discord Notification)
-      - delete (Delete torrent (and files if possible), Log, Discord Notification)
-- HandleOrphaned (handle files/folders that are not used by any torrent)
+  - Supported actions:
+    - test (Log, Discord Notification)
+    - stop (Stop torrent, Log, Discord Notification)
+    - delete (Delete torrent (and files if possible), Log, Discord Notification)
+- HandleOrphaned (handle files/folders that are not used by any torrent, no matter if they are also in the media folder)
   - All features from above
   - Supported actions:
       - test (Log, Discord Notification)
       - delete (Delete files/folders, Log, Discord Notification)
 
 # Prerequirements
-- Have the torrents and media library on the same filesystem (needed for hardlinking)
 - Use hardlinks only! Symlink, copying files, etc. is not supported and could cause data loss!
-- Have a parent folder with torrents/media folder inside (e.g. /data | /data/torrents | /data/media)
 
 # How to install
 
@@ -45,13 +43,22 @@ torrent-cleaner:
       - PGID=1000
       - TZ=Etc/UTC
       - TORRENTS_PATH=/data/torrents
-      - MEDIA_PATH=/data/media
       - LOG_LEVEL=INFO # TRACE, DEBUG, INFO, WARN, ERROR
     volumes:
       - ./config/torrent-cleaner:/config
-      - ./data:/data
+      - ./data/torrents:/data/torrents
     restart: unless-stopped
 ```
+
+### Volume mapping and TORRENTS_PATH
+When torrent-cleaner communicates with qBittorrent to get paths of torrents, qBittorrent gives the path it knows. For example, if you mount qBittorrent to `./data:/data` and your torrents are in `./data/torrents`, qBittorrent will tell torrent-cleaner `/data/torrents`. torrent-cleaner has to know that. Because if qBittorrent knows `/data/torrents` and torrent-cleaner only knows `/torrents`, it is confused and cannot find any files. Thats what TORRENTS_PATH is for.
+#### Examples:
+| Your torrents folder | qBittorrent volume mapping | torrent-cleaner volume mapping | TORRENTS_PATH |
+| --- | --- | --- | --- |
+| ./torrents | ./torrents:/torrents | ./torrents:/torrents | /torrents |
+| ./data/torrents | ./data/torrents:/data/torrents | ./data/torrents:/data/torrents | /data/torrents |
+| ./data/torrents | ./data:/data | ./data/torrents:/data/torrents | /data/torrents |
+| ./torrents/qbittorrent | ./torrents/qbittorrent:/torrents/qbittorrent | ./torrents/qbittorrent:/torrents/qbittorrent | /torrents/qbittorrent |qBittorrent
 
 ## Docker Tags
 | Tag | Description |
@@ -67,7 +74,9 @@ The config will create itself on first start with recommended settings, but stil
 ```json
 {
   "notification": {
-    "discord_webhook_url": "" // Leave empty to disable
+    "discord_webhook_url": "", // Leave empty to disable
+    "on_job_action": true,
+    "on_job_error": true
   },
   "torrent_client": {
     "client": "qbittorrent",
@@ -76,12 +85,12 @@ The config will create itself on first start with recommended settings, but stil
     "password": "adminadmin"
   },
   "jobs": {
-    "handle_forgotten": {
-      "interval_hours": 20, // -1 to disable, 0 to directly start when running (e.g. for testing)
+    "handle_unlinked": {
+      "interval_hours": 12, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_seeding_days": 20,
       "min_strike_days": 3,
       "required_strikes": 3,
-      "protection_tag": "protected-forgotten",
+      "protection_tag": "protected-unlinked",
       "action": "test" // test, stop, delete
     },
     "handle_not_working": {
@@ -89,12 +98,16 @@ The config will create itself on first start with recommended settings, but stil
       "min_strike_days": 5,
       "required_strikes": 10,
       "protection_tag": "protected-not_working",
+      "ignore_dht": true,
+      "ignore_pex": true,
+      "ignore_lsd": true,
       "action": "test" // test, stop, delete
     },
     "handle_orphaned": {
-      "interval_hours": 20, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 13, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 3,
       "required_strikes": 3,
+      "protect_external_hardlinks": true,
       "action": "test" // test, delete
     }
   }

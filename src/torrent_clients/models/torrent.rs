@@ -6,6 +6,7 @@ pub struct Torrent {
     name: String,
     total_size: i64,
     content_path: String,
+    save_path: String,
     ratio: f32,
     state: String,
     tracker: String,
@@ -28,6 +29,9 @@ impl Torrent {
     }
     pub fn content_path(&self) -> &str {
         &self.content_path
+    }
+    pub fn save_path(&self) -> &str {
+        &self.save_path
     }
     pub fn ratio(&self) -> &f32 {
         &self.ratio

@@ -5,28 +5,25 @@ use reqwest::Url;
 
 use crate::{
     config::Config,
+    debug, info,
     jobs::{
         enums::strike_type::StrikeType,
-        handle_forgotten::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
+        handle_unlinked::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
         utils::{discord_webhook_utils::DiscordWebhookUtils, strike_utils::StrikeUtils},
     },
-    logger::{enums::category::Category, logger::Logger},
+    logger::enums::category::Category,
     torrent_clients::{models::torrent::Torrent, torrent_manager::TorrentManager},
 };
 
-pub struct HandleForgotten {
+pub struct HandleUnlinked {
     torrent_manager: Arc<TorrentManager>,
-    media_folder_path: String,
     config: Config,
+    torrents_path: String,
 }
 
-impl HandleForgotten {
-    pub fn new(torrent_manager: Arc<TorrentManager>, media_folder_path: String, config: Config) -> Self {
-        Self {
-            torrent_manager,
-            media_folder_path,
-            config,
-        }
+impl HandleUnlinked {
+    pub fn new(torrent_manager: Arc<TorrentManager>, config: Config, torrents_path: String) -> Self {
+        Self { torrent_manager, config, torrents_path }
     }
 
     /**
@@ -43,40 +40,36 @@ impl HandleForgotten {
         self.torrent_manager.login().await.context("Failed to login to torrent client")?;
 
         // Get torrents from torrent client with criteria
-        let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(self.torrent_manager.clone(), &self.config, &self.media_folder_path).await?;
+        let torrents_criteria: HashMap<String, (Torrent, bool)> = Receiver::get_torrents_criteria(self.torrent_manager.clone(), &self.config, &self.torrents_path).await?;
 
-        Logger::info(
-            Category::HandleForgotten,
-            format!("{} torrents meet criteria", torrents_criteria.values().filter(|(_, is_criteria_met)| *is_criteria_met).count()).as_str(),
-        );
+        info!(Category::HandleUnlinked, "{} torrents meet criteria", torrents_criteria.values().filter(|(_, is_criteria_met)| *is_criteria_met).count(),);
 
         // Striking
-        Logger::debug(Category::HandleForgotten, "Striking torrents...");
+        debug!(Category::HandleUnlinked, "Striking torrents...");
         let mut strike_utils = StrikeUtils::new()?;
         let limit_reached_torrents = Striker::strike_torrents(&mut strike_utils, &torrents_criteria, &self.config)?;
-        Logger::debug(Category::HandleForgotten, "Done striking torrents");
+        debug!(Category::HandleUnlinked, "Done striking torrents");
 
-        Logger::info(
-            Category::HandleForgotten,
-            format!("{} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len()).as_str(),
-        );
+        info!(Category::HandleUnlinked, "{} torrents that meet criteria have reached their strike limits", limit_reached_torrents.len(),);
 
         // Go through torrents
         for torrent in &limit_reached_torrents {
             // Log
-            Logger::info(Category::HandleForgotten, format!("Torrent forgotten: {}", torrent.name()).as_str());
+            info!(Category::HandleUnlinked, "Torrent unlinked: {}", torrent.name());
 
             // Notification
-            Notifier::send_notification(&mut discord_webhook_utils, &torrent, &self.config).await.context("Failed to send notification")?;
+            if *self.config.notification().on_job_action() {
+                Notifier::send_notification(&mut discord_webhook_utils, &torrent, &self.config).await.context("Failed to send notification")?;
+            }
 
             // Take action
             ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, &torrent, &self.config).await?;
         }
 
         // Clean db
-        Logger::debug(Category::HandleForgotten, "Cleaning db...");
+        debug!(Category::HandleUnlinked, "Cleaning db...");
         self.clean_db(&mut strike_utils, &torrents_criteria, &limit_reached_torrents)?;
-        Logger::debug(Category::HandleForgotten, "Cleaned db");
+        debug!(Category::HandleUnlinked, "Cleaned db");
 
         // Logout
         self.torrent_manager.logout().await.context("Failed to logout of torrent client")?;
@@ -94,7 +87,7 @@ impl HandleForgotten {
         let limit_reached_torrent_hashes: Vec<String> = limit_reached_torrents.iter().map(|torrent| torrent.hash().to_string()).collect();
         hashes_to_remove.extend(limit_reached_torrent_hashes);
 
-        let strike_records = strike_utils.get_strikes(&StrikeType::HandleForgotten, None).context("Failed to get all strikes for HandleForgotten")?;
+        let strike_records = strike_utils.get_strikes(&StrikeType::HandleUnlinked, None).context("Failed to get all strikes for HandleUnlinked")?;
         for strike_record in strike_records {
             match torrents_criteria.get(strike_record.hash()) {
                 // Check for stuff that doesn't meet criteria
@@ -110,9 +103,9 @@ impl HandleForgotten {
             }
         }
 
-        Logger::debug(Category::HandleForgotten, format!("Deleting {} hashes", hashes_to_remove.len()).as_str());
+        debug!(Category::HandleUnlinked, "Deleting {} hashes", hashes_to_remove.len());
 
-        strike_utils.delete(StrikeType::HandleForgotten, hashes_to_remove).context("Failed to delete hashes")?;
+        strike_utils.delete(StrikeType::HandleUnlinked, hashes_to_remove).context("Failed to delete hashes")?;
 
         Ok(())
     }

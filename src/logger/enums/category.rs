@@ -4,7 +4,9 @@ pub enum Category {
     JobManager,
     DiscordNotifier,
     Striker,
-    HandleForgotten,
+    FileUtils,
+    DbManager,
+    HandleUnlinked,
     HandleNotWorking,
     HandleOrphaned,
 }
@@ -17,7 +19,9 @@ impl Category {
             Category::JobManager => String::from("job_manager"),
             Category::DiscordNotifier => String::from("discord_notifier"),
             Category::Striker => String::from("striker"),
-            Category::HandleForgotten => String::from("handle_forgotten"),
+            Category::FileUtils => String::from("file_utils"),
+            Category::DbManager => String::from("db_manager"),
+            Category::HandleUnlinked => String::from("handle_unlinked"),
             Category::HandleNotWorking => String::from("handle_not_working"),
             Category::HandleOrphaned => String::from("handle_orphaned"),
         }

@@ -1,6 +1,6 @@
 use crate::torrent_clients::{
     adapters::qbittorrent::Qbittorrent,
-    models::{torrent::Torrent, tracker::Tracker},
+    models::{torrent::Torrent, torrent_file::TorrentFile, tracker::Tracker},
     traits::torrent_client::TorrentClient,
 };
 
@@ -21,6 +21,12 @@ impl TorrentClient for AnyClient {
         }
     }
 
+    async fn is_logged_in(&self) -> Result<bool, anyhow::Error> {
+        match self {
+            AnyClient::Qbittorrent(c) => c.is_logged_in().await,
+        }
+    }
+
     async fn get_all_torrents(&self) -> Result<Vec<Torrent>, anyhow::Error> {
         match self {
             AnyClient::Qbittorrent(c) => c.get_all_torrents().await,
@@ -30,6 +36,12 @@ impl TorrentClient for AnyClient {
     async fn get_torrent_trackers(&self, torrent_hash: &str) -> Result<Vec<Tracker>, anyhow::Error> {
         match self {
             AnyClient::Qbittorrent(c) => c.get_torrent_trackers(torrent_hash).await,
+        }
+    }
+
+    async fn get_torrent_files(&self, torrent_hash: &str) -> Result<Vec<TorrentFile>, anyhow::Error> {
+        match self {
+            AnyClient::Qbittorrent(c) => c.get_torrent_files(torrent_hash).await,
         }
     }
 

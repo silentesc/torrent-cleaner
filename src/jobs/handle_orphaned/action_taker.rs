@@ -1,10 +1,6 @@
 use std::{fs, path::Path};
 
-use crate::{
-    config::Config,
-    jobs::enums::action_type::ActionType,
-    logger::{enums::category::Category, logger::Logger},
-};
+use crate::{config::Config, info, jobs::enums::action_type::ActionType, logger::enums::category::Category, warn};
 
 pub struct ActionTaker;
 
@@ -16,22 +12,24 @@ impl ActionTaker {
         let action_type = ActionType::from_str(config.jobs().handle_orphaned().action())?;
         match action_type {
             ActionType::Test => {
-                Logger::info(Category::HandleOrphaned, "Action: Test");
+                info!(Category::HandleOrphaned, "Action: Test");
             }
             ActionType::Stop => {
-                Logger::warn(Category::HandleOrphaned, "Stop action not supported on orphaned files since files cannot be stopped");
+                warn!(Category::HandleOrphaned, "Stop action not supported on orphaned files since files cannot be stopped");
             }
             ActionType::Delete => {
                 if path.is_file() {
+                    info!(Category::HandleOrphaned, "Action: Delete (file)");
                     if let Err(e) = fs::remove_file(path) {
-                        Logger::error(Category::HandleOrphaned, format!("Error deleting orphaned file ({}): {:#}", path.display(), e).as_str());
+                        anyhow::bail!("Error deleting orphaned file ({}): {:#}", path.display(), e);
                     }
                 } else if path.is_dir() {
+                    info!(Category::HandleOrphaned, "Action: Delete (folder)");
                     if let Err(e) = fs::remove_dir(path) {
-                        Logger::error(Category::HandleOrphaned, format!("Error deleting orphaned dir ({}): {:#}", path.display(), e).as_str());
+                        anyhow::bail!("Error deleting orphaned dir ({}): {:#}", path.display(), e);
                     }
                 } else {
-                    Logger::warn(Category::HandleOrphaned, format!("Path is neither file or dir: {}", path.display()).as_str());
+                    anyhow::bail!("Path is neither file or dir: {}", path.display());
                 }
             }
         }

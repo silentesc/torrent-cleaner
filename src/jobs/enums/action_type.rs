@@ -10,7 +10,7 @@ impl ActionType {
             "test" => Ok(ActionType::Test),
             "stop" => Ok(ActionType::Stop),
             "delete" => Ok(ActionType::Delete),
-            _ => Err(anyhow::anyhow!("Unknown action type '{}'", s)),
+            _ => anyhow::bail!("Unknown action type '{}'", s),
         }
     }
 }
