@@ -19,10 +19,12 @@ impl ActionTaker {
             }
             ActionType::Delete => {
                 if path.is_file() {
+                    info!(Category::HandleOrphaned, "Action: Delete (file)");
                     if let Err(e) = fs::remove_file(path) {
                         anyhow::bail!("Error deleting orphaned file ({}): {:#}", path.display(), e);
                     }
                 } else if path.is_dir() {
+                    info!(Category::HandleOrphaned, "Action: Delete (folder)");
                     if let Err(e) = fs::remove_dir(path) {
                         anyhow::bail!("Error deleting orphaned dir ({}): {:#}", path.display(), e);
                     }
