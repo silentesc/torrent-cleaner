@@ -82,20 +82,17 @@ impl Setup {
                 }
             }
         }
-        let config: Config;
-        match fs::read_to_string(config_path) {
-            Ok(contents) => {
-                config = match serde_json::from_str(&contents) {
-                    Ok(config) => config,
-                    Err(e) => {
-                        anyhow::bail!("Failed to create config object from config file contents: {:#}", e);
-                    }
-                };
-            }
+        let config: Config = match fs::read_to_string(config_path) {
+            Ok(contents) => match serde_json::from_str(&contents) {
+                Ok(config) => config,
+                Err(e) => {
+                    anyhow::bail!("Failed to create config object from config file contents: {:#}", e);
+                }
+            },
             Err(e) => {
                 anyhow::bail!("Failed to read string from config file: {:#}", e);
             }
-        }
+        };
         Ok(config)
     }
 

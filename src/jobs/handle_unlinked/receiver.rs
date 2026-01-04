@@ -18,7 +18,7 @@ impl Receiver {
      * Get torrents and if they match criteria
      * Returns: HashMap<String, (Torrent, bool)> | HashMap<torrent_hash, (Torrent, is_criteria_met))>
      */
-    pub async fn get_torrents_criteria(torrent_manager: Arc<TorrentManager>, config: &Config, torrents_path: &String) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
+    pub async fn get_torrents_criteria(torrent_manager: Arc<TorrentManager>, config: &Config, torrents_path: &str) -> Result<HashMap<String, (Torrent, bool)>, anyhow::Error> {
         // Get torrents from torrent client
         debug!(Category::HandleUnlinked, "Getting torrents...");
         let torrents = torrent_manager.get_all_torrents().await.context("Failed to get all torrents")?;
@@ -38,7 +38,7 @@ impl Receiver {
         debug!(Category::HandleUnlinked, "Checking torrents for criteria...");
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
         for torrent in &torrents {
-            let is_criteria_met = Receiver::is_criteria_met(&torrent, &known_hardlinks, config)?;
+            let is_criteria_met = Receiver::is_criteria_met(torrent, &known_hardlinks, config)?;
             torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), is_criteria_met));
         }
         debug!(Category::HandleUnlinked, "Done checking torrents for criteria");
