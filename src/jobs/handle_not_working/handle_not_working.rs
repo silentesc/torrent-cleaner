@@ -81,11 +81,11 @@ impl HandleNotWorking {
                     Some(trackers) => trackers,
                     None => &Vec::new(),
                 };
-                Notifier::send_notification(&mut discord_webhook_utils, &torrent, &trackers, &self.config).await.context("Failed to send notification")?;
+                Notifier::send_notification(&mut discord_webhook_utils, torrent, trackers, &self.config).await.context("Failed to send notification")?;
             }
 
             // Take action
-            ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, &torrent, &self.config).await?;
+            ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, torrent, &self.config).await?;
         }
 
         // Clean db
@@ -102,7 +102,7 @@ impl HandleNotWorking {
     /**
      * Clean db
      */
-    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, limit_reached_torrents: &Vec<Torrent>) -> Result<(), anyhow::Error> {
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, limit_reached_torrents: &[Torrent]) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
 
         // Torrents that reached limit and were handled

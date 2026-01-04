@@ -91,7 +91,7 @@ impl JobManager {
                 if interval_hours == 0 {
                     interval_hours = default_interval_hours;
                 } else {
-                    let last_run = JobManager::get_last_run(job_name.as_str()).unwrap_or(None).unwrap_or(NaiveDateTime::default());
+                    let last_run = JobManager::get_last_run(job_name.as_str()).unwrap_or(None).unwrap_or_default();
                     let sleep_minutes = JobManager::get_startup_sleep_minutes(job_name.as_str(), interval_hours as i64);
 
                     info!(
@@ -121,11 +121,11 @@ impl JobManager {
                     info!(Category::JobManager, "Starting {}...", job_name);
 
                     // Set last job run, then run job and save result
-                    let result: Result<(), anyhow::Error> = (async || {
+                    let result: Result<(), anyhow::Error> = async {
                         JobManager::set_last_run(job_name.as_str())?;
                         job_fn(handler.clone()).await?;
                         Ok(())
-                    })()
+                    }
                     .await;
 
                     // Check result for error and log & send discord message
@@ -174,18 +174,18 @@ impl JobManager {
                     // Else the job would wait longer than it has to, so return the interval minus the time since the last run
                     let time_delta = DateUtils::get_current_local_naive_datetime() - last_run_naive_datetime;
                     if time_delta > TimeDelta::hours(interval_hours) {
-                        return 0;
+                        0
                     } else {
-                        return interval_hours * 60 - time_delta.num_minutes();
+                        interval_hours * 60 - time_delta.num_minutes()
                     }
                 }
                 None => {
-                    return interval_hours * 60;
+                    interval_hours * 60
                 }
             },
             Err(e) => {
                 error!(Category::JobManager, "Error while getting last job run for {}: {:#}", job_name, e);
-                return interval_hours * 60;
+                interval_hours * 60
             }
         }
     }

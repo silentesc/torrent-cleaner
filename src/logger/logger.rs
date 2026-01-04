@@ -60,7 +60,7 @@ impl Logger {
                 date.format("%Y-%m-%d %H:%M:%S.%3f"),
                 log_level.to_colored_string(),
                 " ".repeat(5 - log_level.to_string().len()),
-                category.to_string(),
+                category,
                 args,
             );
         }

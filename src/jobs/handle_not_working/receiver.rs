@@ -51,7 +51,7 @@ impl Receiver {
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
         for torrent in torrents {
             if let Some(trackers) = torrent_trackers.get(torrent.hash()) {
-                let is_criteria_met = Receiver::is_criteria_met(&torrent, trackers, &config).await.context("Failed to get criteria")?;
+                let is_criteria_met = Receiver::is_criteria_met(torrent, trackers, config).await.context("Failed to get criteria")?;
                 torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), is_criteria_met));
             } else {
                 warn!(Category::HandleNotWorking, "Cannot get tracker for torrent: ({}) {}", torrent.hash(), torrent.name());
@@ -76,12 +76,10 @@ impl Receiver {
             return Ok(false);
         }
         // Stopped torrent
-        if vec![
-            TorrentState::PausedUP.to_string(),
+        if [TorrentState::PausedUP.to_string(),
             TorrentState::PausedDL.to_string(),
             TorrentState::StoppedUP.to_string(),
-            TorrentState::StoppedDL.to_string(),
-        ]
+            TorrentState::StoppedDL.to_string()]
         .contains(&torrent.state().to_string())
         {
             trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (stopped): ({}) {}", torrent.hash(), torrent.name(),);
