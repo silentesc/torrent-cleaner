@@ -173,15 +173,9 @@ impl JobManager {
                     // If the last job run is bigger than interval_hours then it's long ago and should instantly run
                     // Else the job would wait longer than it has to, so return the interval minus the time since the last run
                     let time_delta = DateUtils::get_current_local_naive_datetime() - last_run_naive_datetime;
-                    if time_delta > TimeDelta::hours(interval_hours) {
-                        0
-                    } else {
-                        interval_hours * 60 - time_delta.num_minutes()
-                    }
+                    if time_delta > TimeDelta::hours(interval_hours) { 0 } else { interval_hours * 60 - time_delta.num_minutes() }
                 }
-                None => {
-                    interval_hours * 60
-                }
+                None => interval_hours * 60,
             },
             Err(e) => {
                 error!(Category::JobManager, "Error while getting last job run for {}: {:#}", job_name, e);

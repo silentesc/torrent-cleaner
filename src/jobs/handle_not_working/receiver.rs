@@ -76,10 +76,12 @@ impl Receiver {
             return Ok(false);
         }
         // Stopped torrent
-        if [TorrentState::PausedUP.to_string(),
+        if [
+            TorrentState::PausedUP.to_string(),
             TorrentState::PausedDL.to_string(),
             TorrentState::StoppedUP.to_string(),
-            TorrentState::StoppedDL.to_string()]
+            TorrentState::StoppedDL.to_string(),
+        ]
         .contains(&torrent.state().to_string())
         {
             trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (stopped): ({}) {}", torrent.hash(), torrent.name(),);

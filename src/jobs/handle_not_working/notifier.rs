@@ -3,11 +3,12 @@ use chrono::{Local, TimeZone};
 use crate::{
     config::Config,
     jobs::utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField},
-    logger::{enums::category::Category},
+    logger::enums::category::Category,
     torrent_clients::{
         enums::tracker_status::TrackerStatus,
         models::{torrent::Torrent, tracker::Tracker},
-    }, warn,
+    },
+    warn,
 };
 
 pub struct Notifier;
