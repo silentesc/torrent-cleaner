@@ -2,75 +2,13 @@ use tokio::signal::unix::{SignalKind, signal};
 
 use crate::{logger::enums::category::Category, setup::Setup};
 
-mod torrent_clients {
-    pub mod torrent_manager;
-    pub mod adapters {
-        pub mod qbittorrent;
-    }
-    pub mod enums {
-        pub mod any_client;
-        pub mod torrent_state;
-        pub mod tracker_status;
-    }
-    pub mod models {
-        pub mod torrent;
-        pub mod torrent_file;
-        pub mod tracker;
-    }
-    pub mod traits {
-        pub mod torrent_client;
-    }
-}
-
-mod logger {
-    pub mod logger;
-    pub mod enums {
-        pub mod category;
-        pub mod log_level;
-    }
-}
-
-mod jobs {
-    pub mod enums {
-        pub mod action_type;
-        pub mod strike_type;
-    }
-    pub mod utils {
-        pub mod discord_webhook_utils;
-        pub mod file_utils;
-        pub mod strike_utils;
-    }
-    pub mod handle_unlinked {
-        pub mod action_taker;
-        pub mod handle_unlinked;
-        pub mod notifier;
-        pub mod receiver;
-        pub mod striker;
-    }
-    pub mod handle_not_working {
-        pub mod action_taker;
-        pub mod handle_not_working;
-        pub mod notifier;
-        pub mod receiver;
-        pub mod striker;
-    }
-    pub mod handle_orphaned {
-        pub mod action_taker;
-        pub mod handle_orphaned;
-        pub mod notifier;
-        pub mod receiver;
-        pub mod striker;
-    }
-}
-
-mod utils {
-    pub mod date_utils;
-    pub mod db_manager;
-}
-
 mod config;
 mod job_manager;
+mod jobs;
+mod logger;
 mod setup;
+mod torrent_clients;
+mod utils;
 
 #[tokio::main]
 async fn main() {

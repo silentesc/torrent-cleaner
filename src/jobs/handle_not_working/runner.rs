@@ -9,13 +9,14 @@ use crate::{
     jobs::{
         enums::strike_type::StrikeType,
         handle_not_working::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
-        utils::{discord_webhook_utils::DiscordWebhookUtils, strike_utils::StrikeUtils},
+        utils::strike_utils::StrikeUtils,
     },
     logger::enums::category::Category,
     torrent_clients::{
         models::{torrent::Torrent, tracker::Tracker},
         torrent_manager::TorrentManager,
     },
+    utils::discord_webhook_utils::DiscordWebhookUtils,
 };
 
 pub struct HandleNotWorking {

@@ -50,7 +50,7 @@ impl Setup {
         };
 
         // Test torrent_manager
-        info!(Category::Setup, "Testing torrent client...");
+        info!(Category::Setup, "Testing torrent client (login/logout)");
         torrent_manager.login().await?;
         torrent_manager.logout().await?;
 

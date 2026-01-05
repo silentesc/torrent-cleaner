@@ -5,8 +5,8 @@ use chrono::{DateTime, Local};
 
 use crate::{
     config::Config,
-    jobs::utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField},
     logger::enums::category::Category,
+    utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField},
     warn,
 };
 
