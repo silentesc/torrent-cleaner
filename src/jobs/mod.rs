@@ -3,7 +3,6 @@ pub mod enums {
     pub mod strike_type;
 }
 pub mod utils {
-    pub mod discord_webhook_utils;
     pub mod file_utils;
     pub mod strike_utils;
 }

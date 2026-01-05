@@ -9,10 +9,10 @@ use tokio::{sync::Mutex, time::sleep};
 use crate::{
     config::Config,
     error, info,
-    jobs::{handle_not_working::runner::HandleNotWorking, handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked, utils::discord_webhook_utils::DiscordWebhookUtils},
+    jobs::{handle_not_working::runner::HandleNotWorking, handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked},
     logger::enums::category::Category,
     torrent_clients::torrent_manager::TorrentManager,
-    utils::{date_utils::DateUtils, db_manager::Session},
+    utils::{date_utils::DateUtils, db_manager::Session, discord_webhook_utils::DiscordWebhookUtils},
     warn,
 };
 

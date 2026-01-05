@@ -2,8 +2,8 @@ use chrono::{Local, TimeZone};
 
 use crate::{
     config::Config,
-    jobs::utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField},
     torrent_clients::models::torrent::Torrent,
+    utils::discord_webhook_utils::{DiscordWebhookUtils, EmbedField},
 };
 
 pub struct Notifier;
