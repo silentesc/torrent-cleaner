@@ -15,7 +15,7 @@ use crate::{
 pub struct Setup;
 
 impl Setup {
-    pub fn setup() -> Result<JobManager, anyhow::Error> {
+    pub async fn setup() -> Result<JobManager, anyhow::Error> {
         // Setup logging
         Setup::setup_logging();
         debug!(Category::Setup, "Logger has been loaded");
@@ -48,6 +48,11 @@ impl Setup {
                 anyhow::bail!("Failed to setup torrent_manager: {:#}", e);
             }
         };
+
+        // Test torrent_manager
+        info!(Category::Setup, "Testing torrent client...");
+        torrent_manager.login().await?;
+        torrent_manager.logout().await?;
 
         // Setup jobs
         let job_manager = JobManager::new(config.clone(), torrent_manager.clone(), torrents_path);

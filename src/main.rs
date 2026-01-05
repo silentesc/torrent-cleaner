@@ -91,7 +91,7 @@ async fn main() {
     };
 
     // Setup
-    let job_manager = match Setup::setup() {
+    let job_manager = match Setup::setup().await {
         Ok(job_manager) => job_manager,
         Err(e) => {
             error!(Category::Setup, "{:#}", e);
