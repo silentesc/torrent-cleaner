@@ -12,7 +12,8 @@ use crate::{
         utils::strike_utils::StrikeUtils,
     },
     logger::enums::category::Category,
-    torrent_clients::torrent_manager::TorrentManager, utils::discord_webhook_utils::DiscordWebhookUtils,
+    torrent_clients::torrent_manager::TorrentManager,
+    utils::discord_webhook_utils::DiscordWebhookUtils,
 };
 
 pub struct HandleOrphaned {
