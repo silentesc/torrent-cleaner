@@ -142,10 +142,22 @@ impl HandleOrphaned {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct HealthCheck {
+    interval_hours: i32,
+}
+
+impl HealthCheck {
+    pub fn interval_hours(&self) -> i32 {
+        self.interval_hours
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Jobs {
     handle_unlinked: HandleUnlinked,
     handle_not_working: HandleNotWorking,
     handle_orphaned: HandleOrphaned,
+    health_check: HealthCheck,
 }
 
 impl Jobs {
@@ -157,6 +169,9 @@ impl Jobs {
     }
     pub fn handle_orphaned(&self) -> &HandleOrphaned {
         &self.handle_orphaned
+    }
+    pub fn health_check(&self) -> &HealthCheck {
+        &self.health_check
     }
 }
 
@@ -207,6 +222,7 @@ impl Config {
                     protect_external_hardlinks: true,
                     action: String::from("test"),
                 },
+                health_check: HealthCheck { interval_hours: 24 },
             },
         }
     }

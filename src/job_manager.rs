@@ -9,7 +9,7 @@ use tokio::{sync::Mutex, time::sleep};
 use crate::{
     config::Config,
     error, info,
-    jobs::{handle_not_working::runner::HandleNotWorking, handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked},
+    jobs::{handle_not_working::runner::HandleNotWorking, handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked, health_check::runner::HealthCheck},
     logger::enums::category::Category,
     torrent_clients::torrent_manager::TorrentManager,
     utils::{date_utils::DateUtils, db_manager::Session, discord_webhook_utils::DiscordWebhookUtils},
@@ -37,6 +37,7 @@ impl JobManager {
         let handle_unlinked = Arc::new(HandleUnlinked::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
         let handle_not_working = Arc::new(HandleNotWorking::new(self.torrent_manager.clone(), self.config.clone()));
         let handle_orphaned = Arc::new(HandleOrphaned::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
+        let health_check = Arc::new(HealthCheck::new(self.torrent_manager.clone(), self.config.clone()));
 
         let discord_webhook_url = Some(self.config.notification().discord_webhook_url()).filter(|s| !s.is_empty()).and_then(|url_str| Url::parse(url_str).ok());
 
@@ -68,6 +69,16 @@ impl JobManager {
             discord_webhook_url.clone(),
             handle_orphaned.clone(),
             |handler: Arc<HandleOrphaned>| async move { handler.run().await },
+        );
+
+        self.spawn_job(
+            String::from("health_check"),
+            self.config.jobs().health_check().interval_hours(),
+            Config::default().jobs().health_check().interval_hours(),
+            *self.config.notification().on_job_error(),
+            discord_webhook_url.clone(),
+            health_check.clone(),
+            |handler: Arc<HealthCheck>| async move { handler.run().await },
         );
     }
 
@@ -130,7 +141,7 @@ impl JobManager {
 
                     // Check result for error and log & send discord message
                     if let Err(e) = result {
-                        error!(Category::JobManager, "Failed to run handle_orphaned: {:#}", e);
+                        error!(Category::JobManager, "Failed to run {}: {:#}", job_name, e);
                         // Notify on discord
                         if notify_on_job_error {
                             let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url.clone());
