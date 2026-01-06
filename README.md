@@ -27,6 +27,13 @@
   - Supported actions:
       - test (Log, Discord Notification)
       - delete (Delete files/folders, Log, Discord Notification)
+- HealthCheck
+  - Checks
+    - File checks
+      - Missing torrent contents
+      - Torrent contents size is different than the actual file size
+      - Files are directories instead of files
+  - Actions: Log & Notifies on Discord
 
 # Prerequirements
 - Use hardlinks only! Symlink, copying files, etc. is not supported and could cause data loss!
@@ -109,6 +116,9 @@ The config will create itself on first start with recommended settings, but stil
       "required_strikes": 3,
       "protect_external_hardlinks": true,
       "action": "test" // test, delete
+    },
+    "health_check": {
+      "interval_hours": 24 // -1 to disable, 0 to directly start when running (e.g. for testing)
     }
   }
 }
