@@ -102,10 +102,17 @@ impl Qbittorrent {
      * Login
      */
     pub async fn login(&self) -> Result<(), anyhow::Error> {
-        if self.is_logged_in().await? {
-            warn!(Category::Qbittorrent, "Login: Already logged in, ignoring...");
-            return Ok(());
-        }
+        match self.is_logged_in().await {
+            Ok(is_logged_in) => {
+                if is_logged_in {
+                    warn!(Category::Qbittorrent, "Login: Already logged in, ignoring...");
+                    return Ok(());
+                }
+            }
+            Err(e) => {
+                warn!(Category::Qbittorrent, "is_logged_in failed with error: {:#}", e);
+            }
+        };
 
         let endpoint = self.base_url.join("api/v2/auth/login")?;
         let params = [("username", &self.username), ("password", &self.password)];
