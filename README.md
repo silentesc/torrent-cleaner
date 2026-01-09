@@ -1,41 +1,21 @@
 # Features
+- Handle unlinked torrents (torrents that have no hardlinkes outside the torrent folder)
+- Handle unregistered torrents (torrents that have been deleted from the tracker)
+- Handle orphaned files & empty folders (stuff that isn't in the torrent client anymore)
+- Health check for files
+  - Missing torrent contents
+  - Torrent contents size is different than the actual file size
+  - Files are directories instead of files
 - Striking (action only taken on x strikes over y **continuous** days)
-- Protection Tag individually for every job
-- Discord Webhook Notifications (disable by leaving it blank)
-- Supports cross-seeding that either uses hardlinks or uses the excact same files (never deletes files that other torrents need)
+- Protection Tag for every feature
+- Discord Webhook Notifications
+- Never delete files that other torrents need (full cross-seed support ! hardlinks only !)
 - Written in Rust with a focus on performance and stability
 - Supported torrent clients:
   - qBittorrent
 
-# Jobs
-- HandleUnlinked (handle torrents that have no hardlinkes outside the torrent folder):
-  - All features from above, plus:
-    - Minimum seeding days (action only taken if torrent was **actively seeding** for x days)
-  - Supported actions:
-    - test (Log, Discord Notification)
-    - stop (Stop torrent, Log, Discord Notification)
-    - delete (Delete torrent (and files if possible), Log, Discord Notification)
-- HandleUnregistered (handle torrents that have been deleted from the tracker)
-  - All features from above
-  - Supported actions:
-    - test (Log, Discord Notification)
-    - stop (Stop torrent, Log, Discord Notification)
-    - delete (Delete torrent (and files if possible), Log, Discord Notification)
-- HandleOrphaned (handle files/folders that are not used by any torrent, no matter if they are also in the media folder)
-  - All features from above
-  - Supported actions:
-      - test (Log, Discord Notification)
-      - delete (Delete files/folders, Log, Discord Notification)
-- HealthCheck
-  - Checks
-    - File checks
-      - Missing torrent contents
-      - Torrent contents size is different than the actual file size
-      - Files are directories instead of files
-  - Actions: Log & Notifies on Discord
-
 # Prerequirements
-- Use hardlinks only! Symlink, copying files, etc. is not supported and could cause data loss!
+- Use hardlinks only! Symlink is not supported/tested and could cause data loss!
 
 # How to install
 
@@ -116,7 +96,7 @@ The config will create itself on first start with recommended settings, but stil
       "protect_external_hardlinks": true,
       "action": "test" // test, delete
     },
-    "health_check": {
+    "health_check_files": {
       "interval_hours": 24 // -1 to disable, 0 to directly start when running (e.g. for testing)
     }
   }
