@@ -76,7 +76,7 @@ impl HandleUnlinked {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct HandleNotWorking {
+pub struct HandleUnregistered {
     interval_hours: i32,
     min_strike_days: i32,
     required_strikes: i32,
@@ -87,7 +87,7 @@ pub struct HandleNotWorking {
     action: String,
 }
 
-impl HandleNotWorking {
+impl HandleUnregistered {
     pub fn interval_hours(&self) -> i32 {
         self.interval_hours
     }
@@ -155,7 +155,7 @@ impl HealthCheck {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Jobs {
     handle_unlinked: HandleUnlinked,
-    handle_not_working: HandleNotWorking,
+    handle_unregistered: HandleUnregistered,
     handle_orphaned: HandleOrphaned,
     health_check: HealthCheck,
 }
@@ -164,8 +164,8 @@ impl Jobs {
     pub fn handle_unlinked(&self) -> &HandleUnlinked {
         &self.handle_unlinked
     }
-    pub fn handle_not_working(&self) -> &HandleNotWorking {
-        &self.handle_not_working
+    pub fn handle_unregistered(&self) -> &HandleUnregistered {
+        &self.handle_unregistered
     }
     pub fn handle_orphaned(&self) -> &HandleOrphaned {
         &self.handle_orphaned
@@ -205,14 +205,14 @@ impl Config {
                     protection_tag: String::from("protected-unlinked"),
                     action: String::from("test"),
                 },
-                handle_not_working: HandleNotWorking {
+                handle_unregistered: HandleUnregistered {
                     interval_hours: 3,
-                    min_strike_days: 5,
-                    required_strikes: 10,
-                    protection_tag: String::from("protected-not_working"),
+                    min_strike_days: 1,
+                    required_strikes: 2,
                     ignore_dht: true,
                     ignore_pex: true,
                     ignore_lsd: true,
+                    protection_tag: String::from("protected-unregistered"),
                     action: String::from("test"),
                 },
                 handle_orphaned: HandleOrphaned {

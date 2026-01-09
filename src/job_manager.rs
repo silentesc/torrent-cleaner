@@ -9,7 +9,7 @@ use tokio::{sync::Mutex, time::sleep};
 use crate::{
     config::Config,
     error, info,
-    jobs::{handle_not_working::runner::HandleNotWorking, handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked, health_check::runner::HealthCheck},
+    jobs::{handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked, handle_unregistered::runner::HandleUnregistered, health_check::runner::HealthCheck},
     logger::enums::category::Category,
     torrent_clients::torrent_manager::TorrentManager,
     utils::{date_utils::DateUtils, db_manager::Session, discord_webhook_utils::DiscordWebhookUtils},
@@ -35,7 +35,7 @@ impl JobManager {
 
     pub fn setup(&self) {
         let handle_unlinked = Arc::new(HandleUnlinked::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
-        let handle_not_working = Arc::new(HandleNotWorking::new(self.torrent_manager.clone(), self.config.clone()));
+        let handle_unregistered = Arc::new(HandleUnregistered::new(self.torrent_manager.clone(), self.config.clone()));
         let handle_orphaned = Arc::new(HandleOrphaned::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
         let health_check = Arc::new(HealthCheck::new(self.torrent_manager.clone(), self.config.clone()));
 
@@ -52,13 +52,13 @@ impl JobManager {
         );
 
         self.spawn_job(
-            String::from("handle_not_working"),
-            self.config.jobs().handle_not_working().interval_hours(),
-            Config::default().jobs().handle_not_working().interval_hours(),
+            String::from("handle_unregistered"),
+            self.config.jobs().handle_unregistered().interval_hours(),
+            Config::default().jobs().handle_unregistered().interval_hours(),
             *self.config.notification().on_job_error(),
             discord_webhook_url.clone(),
-            handle_not_working.clone(),
-            |handler: Arc<HandleNotWorking>| async move { handler.run().await },
+            handle_unregistered.clone(),
+            |handler: Arc<HandleUnregistered>| async move { handler.run().await },
         );
 
         self.spawn_job(

@@ -32,4 +32,14 @@ impl TrackerStatus {
             _ => Err(format!("Invalid Tracker Status Number: {}", num)),
         }
     }
+
+    pub fn to_i8(&self) -> i8 {
+        match self {
+            TrackerStatus::Disabled => 0,
+            TrackerStatus::NotContacted => 1,
+            TrackerStatus::Working => 2,
+            TrackerStatus::Updating => 3,
+            TrackerStatus::NotWorking => 4,
+        }
+    }
 }

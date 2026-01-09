@@ -44,7 +44,7 @@ impl Notifier {
             let tracker_status_str = match TrackerStatus::from_int(*tracker.status()) {
                 Ok(tracker_status) => tracker_status.to_string(),
                 Err(e) => {
-                    warn!(Category::HandleNotWorking, "{}", e);
+                    warn!(Category::HandleUnregistered, "{}", e);
                     tracker.status().to_string()
                 }
             };
@@ -57,7 +57,7 @@ impl Notifier {
         fields.extend(vec![
             EmbedField {
                 name: String::from("Action"),
-                value: config.jobs().handle_not_working().action().to_string(),
+                value: config.jobs().handle_unregistered().action().to_string(),
                 inline: true,
             },
             EmbedField {
@@ -97,6 +97,6 @@ impl Notifier {
             },
         ]);
 
-        discord_webhook_utils.send_webhook_embed(torrent.name(), "Found not working torrent", fields).await
+        discord_webhook_utils.send_webhook_embed(torrent.name(), "Found unregistered torrent", fields).await
     }
 }
