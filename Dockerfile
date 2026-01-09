@@ -17,7 +17,7 @@ RUN cargo build --release --locked
 ##########
 FROM alpine:3.23.2
 
-RUN apk add --no-cache ca-certificates openssl sqlite-libs libgcc
+RUN apk add --no-cache ca-certificates openssl sqlite-libs libgcc tzdata
 
 # Default envs (can be overridden in docker-compose)
 ENV PUID=1000 \
