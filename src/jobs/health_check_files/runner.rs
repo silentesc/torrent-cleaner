@@ -5,7 +5,8 @@ use reqwest::Url;
 
 use crate::{
     config::Config,
-    debug,
+    debug, info,
+    jobs::enums::action_type::ActionType,
     logger::enums::category::Category,
     torrent_clients::{models::torrent::Torrent, torrent_manager::TorrentManager},
     utils::discord_webhook_utils::DiscordWebhookUtils,
@@ -42,10 +43,18 @@ impl HealthCheckFiles {
         debug!(Category::HealthCheckFiles, "File check reported {} issues", file_issues.len());
 
         // Handle file issues
+        let action_type = ActionType::from_str(self.config.jobs().health_check_files().action())?;
         for file_issue in file_issues {
             warn!(Category::HealthCheckFiles, "File check: {}", file_issue);
+
             if *self.config.notification().on_job_action() {
                 discord_webhook_utils.send_webhook_embed("Health Check (Files)", &file_issue, Vec::new()).await?;
+            }
+
+            match action_type {
+                ActionType::Test => info!(Category::HealthCheckFiles, "Action: test"),
+                ActionType::Stop => warn!(Category::HealthCheckFiles, "Stop action not supported on health_check_files"),
+                ActionType::Delete => warn!(Category::HealthCheckFiles, "Delete action not supported on health_check_files"),
             }
         }
 
