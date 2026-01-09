@@ -9,7 +9,7 @@ pub enum Category {
     FileUtils,
     DbManager,
     HandleUnlinked,
-    HandleNotWorking,
+    HandleUnregistered,
     HandleOrphaned,
     HealthCheck,
 }
@@ -25,7 +25,7 @@ impl fmt::Display for Category {
             Category::FileUtils => String::from("file_utils"),
             Category::DbManager => String::from("db_manager"),
             Category::HandleUnlinked => String::from("handle_unlinked"),
-            Category::HandleNotWorking => String::from("handle_not_working"),
+            Category::HandleUnregistered => String::from("handle_unregistered"),
             Category::HandleOrphaned => String::from("handle_orphaned"),
             Category::HealthCheck => String::from("health_check"),
         };

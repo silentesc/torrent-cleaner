@@ -2,7 +2,7 @@
 - Striking (action only taken on x strikes over y **continuous** days)
 - Protection Tag individually for every job
 - Discord Webhook Notifications (disable by leaving it blank)
-- Supports cross-seeding that either uses hardlinks or uses the excact same files
+- Supports cross-seeding that either uses hardlinks or uses the excact same files (never deletes files that other torrents need)
 - Written in Rust with a focus on performance and stability
 - Supported torrent clients:
   - qBittorrent
@@ -15,9 +15,8 @@
     - test (Log, Discord Notification)
     - stop (Stop torrent, Log, Discord Notification)
     - delete (Delete torrent (and files if possible), Log, Discord Notification)
-- HandleNotWorking (handle torrents that have no working trackers)
-  - All features from above, plus:
-    - If there is a working tracker, the striking process is reset
+- HandleUnregistered (handle torrents that have been deleted from the tracker)
+  - All features from above
   - Supported actions:
     - test (Log, Discord Notification)
     - stop (Stop torrent, Log, Discord Notification)
@@ -100,14 +99,14 @@ The config will create itself on first start with recommended settings, but stil
       "protection_tag": "protected-unlinked",
       "action": "test" // test, stop, delete
     },
-    "handle_not_working": {
+    "handle_unregistered": {
       "interval_hours": 3, // -1 to disable, 0 to directly start when running (e.g. for testing)
-      "min_strike_days": 5,
-      "required_strikes": 10,
-      "protection_tag": "protected-not_working",
+      "min_strike_days": 1,
+      "required_strikes": 2,
       "ignore_dht": true,
       "ignore_pex": true,
       "ignore_lsd": true,
+      "protection_tag": "protected-unregistered",
       "action": "test" // test, stop, delete
     },
     "handle_orphaned": {
