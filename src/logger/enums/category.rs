@@ -11,7 +11,7 @@ pub enum Category {
     HandleUnlinked,
     HandleUnregistered,
     HandleOrphaned,
-    HealthCheck,
+    HealthCheckFiles,
 }
 
 impl fmt::Display for Category {
@@ -27,7 +27,7 @@ impl fmt::Display for Category {
             Category::HandleUnlinked => String::from("handle_unlinked"),
             Category::HandleUnregistered => String::from("handle_unregistered"),
             Category::HandleOrphaned => String::from("handle_orphaned"),
-            Category::HealthCheck => String::from("health_check"),
+            Category::HealthCheckFiles => String::from("health_check_files"),
         };
         write!(f, "{}", category_str)
     }

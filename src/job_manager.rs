@@ -9,7 +9,7 @@ use tokio::{sync::Mutex, time::sleep};
 use crate::{
     config::Config,
     error, info,
-    jobs::{handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked, handle_unregistered::runner::HandleUnregistered, health_check::runner::HealthCheck},
+    jobs::{handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked, handle_unregistered::runner::HandleUnregistered, health_check_files::runner::HealthCheckFiles},
     logger::enums::category::Category,
     torrent_clients::torrent_manager::TorrentManager,
     utils::{date_utils::DateUtils, db_manager::Session, discord_webhook_utils::DiscordWebhookUtils},
@@ -37,7 +37,7 @@ impl JobManager {
         let handle_unlinked = Arc::new(HandleUnlinked::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
         let handle_unregistered = Arc::new(HandleUnregistered::new(self.torrent_manager.clone(), self.config.clone()));
         let handle_orphaned = Arc::new(HandleOrphaned::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
-        let health_check = Arc::new(HealthCheck::new(self.torrent_manager.clone(), self.config.clone()));
+        let health_check_files = Arc::new(HealthCheckFiles::new(self.torrent_manager.clone(), self.config.clone()));
 
         let discord_webhook_url = Some(self.config.notification().discord_webhook_url()).filter(|s| !s.is_empty()).and_then(|url_str| Url::parse(url_str).ok());
 
@@ -72,13 +72,13 @@ impl JobManager {
         );
 
         self.spawn_job(
-            String::from("health_check"),
-            self.config.jobs().health_check().interval_hours(),
-            Config::default().jobs().health_check().interval_hours(),
+            String::from("health_check_files"),
+            self.config.jobs().health_check_files().interval_hours(),
+            Config::default().jobs().health_check_files().interval_hours(),
             *self.config.notification().on_job_error(),
             discord_webhook_url.clone(),
-            health_check.clone(),
-            |handler: Arc<HealthCheck>| async move { handler.run().await },
+            health_check_files.clone(),
+            |handler: Arc<HealthCheckFiles>| async move { handler.run().await },
         );
     }
 
