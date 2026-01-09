@@ -144,11 +144,15 @@ impl HandleOrphaned {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct HealthCheckFiles {
     interval_hours: i32,
+    action: String,
 }
 
 impl HealthCheckFiles {
     pub fn interval_hours(&self) -> i32 {
         self.interval_hours
+    }
+    pub fn action(&self) -> &str {
+        &self.action
     }
 }
 
@@ -222,7 +226,10 @@ impl Config {
                     protect_external_hardlinks: true,
                     action: String::from("test"),
                 },
-                health_check_files: HealthCheckFiles { interval_hours: 24 },
+                health_check_files: HealthCheckFiles {
+                    interval_hours: 24,
+                    action: String::from("test"),
+                },
             },
         }
     }

@@ -97,7 +97,8 @@ The config will create itself on first start with recommended settings, but stil
       "action": "test" // test, delete
     },
     "health_check_files": {
-      "interval_hours": 24 // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 24, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "action": "test" // test
     }
   }
 }
