@@ -49,63 +49,63 @@ impl Qbittorrent {
         let max_retries = 3;
         let delay = Duration::from_secs(3);
 
-        for attempt in 0..=max_retries {
+        for attempt in 1..=max_retries {
             match make_request_builder().send().await {
                 // Request succeeded
                 Ok(respone) => {
+                    // Status code success
                     if respone.status().is_success() {
                         return Ok(respone);
-                    } else if attempt < max_retries {
-                        // Not logged in anymore (e.g. qbittorrent restarted)
-                        if respone.status() == StatusCode::UNAUTHORIZED || respone.status() == StatusCode::FORBIDDEN {
-                            error!(Category::Qbittorrent, "Request to qbittorrent returned status code {}, trying to relogin", respone.status());
-                            match self.login().await {
-                                Ok(_) => {}
-                                Err(e) => return Err(e),
-                            }
-                            continue;
-                        }
-                        // Any other non-successful status code
-                        else {
-                            error!(
-                                Category::Qbittorrent,
-                                "Request to qbittorrent returned status code {}, waiting for {} seconds to try again: {}",
-                                respone.status(),
-                                delay.as_secs(),
-                                respone.text().await.context("Failed to get error text")?
-                            );
-                            sleep(delay).await;
-                            continue;
-                        }
                     }
-                }
-                // Request failed
-                Err(e) if attempt < max_retries => {
+                    // Not logged in anymore (e.g. qbittorrent restarted)
+                    if respone.status() == StatusCode::UNAUTHORIZED || respone.status() == StatusCode::FORBIDDEN {
+                        error!(Category::Qbittorrent, "Request to qbittorrent returned status code {}, trying to relogin", respone.status());
+                        self.login().await?;
+                        continue;
+                    }
+                    // Any other non-successful status code
                     error!(
                         Category::Qbittorrent,
-                        "Request to qbittorrent failed on try {}/{}, waiting for {} seconds to try again: {}",
+                        "Request to qbittorrent returned status code {}, waiting for {} seconds to try again: {}",
+                        respone.status(),
+                        delay.as_secs(),
+                        respone.text().await.context("Failed to get error text")?
+                    );
+                    sleep(delay).await;
+                }
+                // Request failed
+                Err(e) => {
+                    error!(
+                        Category::Qbittorrent,
+                        "Request to qbittorrent failed on try {}/{}, waiting for {} seconds to try again: {:#}",
                         attempt + 1,
                         max_retries,
                         delay.as_secs(),
-                        e.to_string()
+                        e
                     );
                     sleep(delay).await;
                     continue;
                 }
-                Err(e) => anyhow::bail!(e),
             }
         }
-        anyhow::bail!("Request to failed after {} tries", max_retries);
+        anyhow::bail!("Stopping retry. Request to failed after {} tries", max_retries);
     }
 
     /**
      * Login
      */
     pub async fn login(&self) -> Result<(), anyhow::Error> {
-        if self.is_logged_in().await? {
-            warn!(Category::Qbittorrent, "Login: Already logged in, ignoring...");
-            return Ok(());
-        }
+        match self.is_logged_in().await {
+            Ok(is_logged_in) => {
+                if is_logged_in {
+                    warn!(Category::Qbittorrent, "Login: Already logged in, ignoring...");
+                    return Ok(());
+                }
+            }
+            Err(e) => {
+                warn!(Category::Qbittorrent, "is_logged_in failed with error: {:#}", e);
+            }
+        };
 
         let endpoint = self.base_url.join("api/v2/auth/login")?;
         let params = [("username", &self.username), ("password", &self.password)];
@@ -121,17 +121,21 @@ impl Qbittorrent {
                     }
                     None => anyhow::bail!("Failed to authenticate to qbittorrent"),
                 },
-                Err(_) if attempt < max_retries => {
-                    error!(Category::Qbittorrent, "Failed to login to qbittorrent on try {}/{}, waiting for {} seconds", attempt, max_retries, delay.as_secs(),);
+                Err(e) => {
+                    error!(
+                        Category::Qbittorrent,
+                        "Failed to login to qbittorrent on try {}/{}, waiting for {} seconds: {:#}",
+                        attempt,
+                        max_retries,
+                        delay.as_secs(),
+                        e
+                    );
                     sleep(delay).await;
                     continue;
                 }
-                Err(e) => {
-                    anyhow::bail!("Failed to login to qbittorrent on try {}/{}: {:#}", attempt, max_retries, e);
-                }
             }
         }
-        anyhow::bail!("Login request to qbittorrent failed");
+        anyhow::bail!("Stopping retry. Login request to qbittorrent failed after {} tries", max_retries);
     }
 
     /**

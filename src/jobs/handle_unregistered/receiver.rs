@@ -7,7 +7,7 @@ use crate::{
     debug,
     logger::enums::category::Category,
     torrent_clients::{
-        enums::{torrent_state::TorrentState, tracker_status::TrackerStatus},
+        enums::torrent_state::TorrentState,
         models::{torrent::Torrent, tracker::Tracker},
         torrent_manager::TorrentManager,
     },
@@ -30,9 +30,9 @@ impl Receiver {
                 .context(format!("Failed to get trackers for torrent: ({}) {}", torrent.hash(), torrent.name()))?
                 .into_iter()
                 .filter(|tracker| match tracker.url() {
-                    "** [DHT] **" if *config.jobs().handle_not_working().ignore_dht() => false,
-                    "** [PeX] **" if *config.jobs().handle_not_working().ignore_pex() => false,
-                    "** [LSD] **" if *config.jobs().handle_not_working().ignore_lsd() => false,
+                    "** [DHT] **" if *config.jobs().handle_unregistered().ignore_dht() => false,
+                    "** [PeX] **" if *config.jobs().handle_unregistered().ignore_pex() => false,
+                    "** [LSD] **" if *config.jobs().handle_unregistered().ignore_lsd() => false,
                     _ => true,
                 })
                 .collect();
@@ -51,10 +51,10 @@ impl Receiver {
         let mut torrents_criteria: HashMap<String, (Torrent, bool)> = HashMap::new();
         for torrent in torrents {
             if let Some(trackers) = torrent_trackers.get(torrent.hash()) {
-                let is_criteria_met = Receiver::is_criteria_met(&torrent, trackers, &config).await.context("Failed to get criteria")?;
+                let is_criteria_met = Receiver::is_criteria_met(torrent, trackers, config).await.context("Failed to get criteria")?;
                 torrents_criteria.insert(torrent.hash().to_string(), (torrent.clone(), is_criteria_met));
             } else {
-                warn!(Category::HandleNotWorking, "Cannot get tracker for torrent: ({}) {}", torrent.hash(), torrent.name());
+                warn!(Category::HandleUnregistered, "Cannot get tracker for torrent: ({}) {}", torrent.hash(), torrent.name());
             }
         }
 
@@ -67,16 +67,16 @@ impl Receiver {
     async fn is_criteria_met(torrent: &Torrent, trackers: &Vec<Tracker>, config: &Config) -> Result<bool, anyhow::Error> {
         // Uncompleted
         if *torrent.completion_on() == -1 {
-            trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),);
+            trace!(Category::HandleUnregistered, "Torrent doesn't meet criteria (uncompleted): ({}) {}", torrent.hash(), torrent.name(),);
             return Ok(false);
         }
         // Protection tag
-        if torrent.tags().contains(config.jobs().handle_not_working().protection_tag()) {
-            trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (protection tag): ({}) {}", torrent.hash(), torrent.name(),);
+        if torrent.tags().contains(config.jobs().handle_unregistered().protection_tag()) {
+            trace!(Category::HandleUnregistered, "Torrent doesn't meet criteria (protection tag): ({}) {}", torrent.hash(), torrent.name(),);
             return Ok(false);
         }
         // Stopped torrent
-        if vec![
+        if [
             TorrentState::PausedUP.to_string(),
             TorrentState::PausedDL.to_string(),
             TorrentState::StoppedUP.to_string(),
@@ -84,25 +84,23 @@ impl Receiver {
         ]
         .contains(&torrent.state().to_string())
         {
-            trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (stopped): ({}) {}", torrent.hash(), torrent.name(),);
+            trace!(Category::HandleUnregistered, "Torrent doesn't meet criteria (stopped): ({}) {}", torrent.hash(), torrent.name(),);
             return Ok(false);
         }
         // Working trackers
         for tracker in trackers {
-            match TrackerStatus::from_int(*tracker.status()) {
-                Ok(tracker_status) => {
-                    if matches!(tracker_status, TrackerStatus::Working) {
-                        trace!(Category::HandleNotWorking, "Torrent doesn't meet criteria (at least 1 working tracker): ({}) {}", torrent.hash(), torrent.name(),);
-                        return Ok(false);
-                    }
-                }
-                Err(e) => {
-                    anyhow::bail!(e);
-                }
+            if !tracker.is_unregistered() {
+                trace!(
+                    Category::HandleUnregistered,
+                    "Torrent doesn't meet criteria (at least 1 tracker is not unregistered): ({}) {}",
+                    torrent.hash(),
+                    torrent.name(),
+                );
+                return Ok(false);
             }
         }
         // All good
-        debug!(Category::HandleNotWorking, "Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name());
+        debug!(Category::HandleUnregistered, "Torrent meets criteria: ({}) {}", torrent.hash(), torrent.name());
         Ok(true)
     }
 }

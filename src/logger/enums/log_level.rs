@@ -1,9 +1,24 @@
+use std::fmt;
+
 pub enum LogLevel {
     Trace,
     Debug,
     Info,
     Warn,
     Error,
+}
+
+impl fmt::Display for LogLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let log_level_str = match self {
+            LogLevel::Trace => String::from("TRACE"),
+            LogLevel::Debug => String::from("DEBUG"),
+            LogLevel::Info => String::from("INFO"),
+            LogLevel::Warn => String::from("WARN"),
+            LogLevel::Error => String::from("ERROR"),
+        };
+        write!(f, "{}", log_level_str)
+    }
 }
 
 impl LogLevel {
@@ -25,16 +40,6 @@ impl LogLevel {
             LogLevel::Info => 2,
             LogLevel::Warn => 3,
             LogLevel::Error => 4,
-        }
-    }
-
-    pub fn to_string(&self) -> String {
-        match self {
-            LogLevel::Trace => String::from("TRACE"),
-            LogLevel::Debug => String::from("DEBUG"),
-            LogLevel::Info => String::from("INFO"),
-            LogLevel::Warn => String::from("WARN"),
-            LogLevel::Error => String::from("ERROR"),
         }
     }
 

@@ -34,7 +34,7 @@ impl DiscordWebhookUtils {
     }
 
     pub fn is_notifications_enabled(&self) -> bool {
-        return self.discord_webhook_url.is_some();
+        self.discord_webhook_url.is_some()
     }
 
     async fn get_retry_after_millis(&mut self, headers: &HeaderMap) -> u64 {
@@ -95,7 +95,7 @@ impl DiscordWebhookUtils {
                     // Error: 429
                     else if response.status() == StatusCode::TOO_MANY_REQUESTS {
                         self.request_history.push((Local::now().timestamp(), false));
-                        let retry_after_millis = self.get_retry_after_millis(&response.headers()).await;
+                        let retry_after_millis = self.get_retry_after_millis(response.headers()).await;
                         if retry_after_millis > 0 {
                             warn!(
                                 Category::DiscordNotifier,

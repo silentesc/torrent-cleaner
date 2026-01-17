@@ -25,9 +25,9 @@ impl StrikeRecord {
         let today_local = DateUtils::get_current_local_naive_date();
         let yesterday_local = today_local - Duration::days(1);
         if self.last_strike_date == today_local || self.last_strike_date == yesterday_local {
-            return self.strikes >= required_strikes && self.strike_days >= min_strike_days;
+            self.strikes >= required_strikes && self.strike_days >= min_strike_days
         } else {
-            return false;
+            false
         }
     }
 
@@ -70,7 +70,7 @@ impl StrikeUtils {
         // Build statement from sql query
         let mut stmt = match &hashes {
             Some(hashes) => {
-                let placeholders = std::iter::repeat("?").take(hashes.len()).collect::<Vec<&str>>().join(",");
+                let placeholders = std::iter::repeat_n("?", hashes.len()).collect::<Vec<&str>>().join(",");
                 let sql = format!("SELECT id, strike_type, hash, strikes, strike_days, last_strike_date FROM strikes WHERE strike_type = ?1 AND hash IN ({})", placeholders);
                 self.conn.prepare(sql.as_str()).context("Failed to prepare get_strikes select")?
             }
@@ -147,7 +147,7 @@ impl StrikeUtils {
                 );
             }
             // Check for strike record of the hash
-            match strike_records_for_hash.get(0) {
+            match strike_records_for_hash.first() {
                 // If the strike record of the hash exists, handle multiple scenarios
                 Some(strike_record) => {
                     let today_local = DateUtils::get_current_local_naive_date();
@@ -198,7 +198,7 @@ impl StrikeUtils {
      * Delete strikes
      */
     pub fn delete(&mut self, strike_type: StrikeType, hashes: Vec<String>) -> Result<(), anyhow::Error> {
-        let placeholders = std::iter::repeat("?").take(hashes.len()).collect::<Vec<&str>>().join(",");
+        let placeholders = std::iter::repeat_n("?", hashes.len()).collect::<Vec<&str>>().join(",");
         let sql = format!("DELETE FROM strikes WHERE strike_type = ?1 AND hash IN ({})", placeholders);
 
         let mut params: Vec<String> = vec![strike_type.to_string()];

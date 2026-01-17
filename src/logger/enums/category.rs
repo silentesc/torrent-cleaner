@@ -1,3 +1,5 @@
+use std::fmt;
+
 pub enum Category {
     Qbittorrent,
     Setup,
@@ -7,13 +9,14 @@ pub enum Category {
     FileUtils,
     DbManager,
     HandleUnlinked,
-    HandleNotWorking,
+    HandleUnregistered,
     HandleOrphaned,
+    HealthCheckFiles,
 }
 
-impl Category {
-    pub fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for Category {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let category_str = match self {
             Category::Qbittorrent => String::from("qbittorrent"),
             Category::Setup => String::from("setup"),
             Category::JobManager => String::from("job_manager"),
@@ -22,8 +25,10 @@ impl Category {
             Category::FileUtils => String::from("file_utils"),
             Category::DbManager => String::from("db_manager"),
             Category::HandleUnlinked => String::from("handle_unlinked"),
-            Category::HandleNotWorking => String::from("handle_not_working"),
+            Category::HandleUnregistered => String::from("handle_unregistered"),
             Category::HandleOrphaned => String::from("handle_orphaned"),
-        }
+            Category::HealthCheckFiles => String::from("health_check_files"),
+        };
+        write!(f, "{}", category_str)
     }
 }

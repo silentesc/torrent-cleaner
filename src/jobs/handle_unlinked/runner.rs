@@ -9,10 +9,11 @@ use crate::{
     jobs::{
         enums::strike_type::StrikeType,
         handle_unlinked::{action_taker::ActionTaker, notifier::Notifier, receiver::Receiver, striker::Striker},
-        utils::{discord_webhook_utils::DiscordWebhookUtils, strike_utils::StrikeUtils},
+        utils::strike_utils::StrikeUtils,
     },
     logger::enums::category::Category,
     torrent_clients::{models::torrent::Torrent, torrent_manager::TorrentManager},
+    utils::discord_webhook_utils::DiscordWebhookUtils,
 };
 
 pub struct HandleUnlinked {
@@ -59,11 +60,11 @@ impl HandleUnlinked {
 
             // Notification
             if *self.config.notification().on_job_action() {
-                Notifier::send_notification(&mut discord_webhook_utils, &torrent, &self.config).await.context("Failed to send notification")?;
+                Notifier::send_notification(&mut discord_webhook_utils, torrent, &self.config).await.context("Failed to send notification")?;
             }
 
             // Take action
-            ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, &torrent, &self.config).await?;
+            ActionTaker::take_action(self.torrent_manager.clone(), &torrents_criteria, torrent, &self.config).await?;
         }
 
         // Clean db
@@ -80,7 +81,7 @@ impl HandleUnlinked {
     /**
      * Clean db
      */
-    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, limit_reached_torrents: &Vec<Torrent>) -> Result<(), anyhow::Error> {
+    fn clean_db(&self, strike_utils: &mut StrikeUtils, torrents_criteria: &HashMap<String, (Torrent, bool)>, limit_reached_torrents: &[Torrent]) -> Result<(), anyhow::Error> {
         let mut hashes_to_remove: Vec<String> = Vec::new();
 
         // Torrents that reached limit and were handled

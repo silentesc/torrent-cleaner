@@ -1,35 +1,21 @@
 # Features
+- Handle unlinked torrents (torrents that have no hardlinkes outside the torrent folder)
+- Handle unregistered torrents (torrents that have been deleted from the tracker)
+- Handle orphaned files & empty folders (stuff that isn't in the torrent client anymore)
+- Health check for files
+  - Missing torrent contents
+  - Torrent contents size is different than the actual file size
+  - Files are directories instead of files
 - Striking (action only taken on x strikes over y **continuous** days)
-- Protection Tag individually for every job
-- Discord Webhook Notifications (disable by leaving it blank)
-- Supports cross-seeding that either uses hardlinks or uses the excact same files
+- Protection Tag for every feature
+- Discord Webhook Notifications
+- Never delete files that other torrents need (full cross-seed support ! hardlinks only !)
 - Written in Rust with a focus on performance and stability
 - Supported torrent clients:
   - qBittorrent
 
-# Jobs
-- HandleUnlinked (handle torrents that have no hardlinkes outside the torrent folder):
-  - All features from above, plus:
-    - Minimum seeding days (action only taken if torrent was **actively seeding** for x days)
-  - Supported actions:
-    - test (Log, Discord Notification)
-    - stop (Stop torrent, Log, Discord Notification)
-    - delete (Delete torrent (and files if possible), Log, Discord Notification)
-- HandleNotWorking (handle torrents that have no working trackers)
-  - All features from above, plus:
-    - If there is a working tracker, the striking process is reset
-  - Supported actions:
-    - test (Log, Discord Notification)
-    - stop (Stop torrent, Log, Discord Notification)
-    - delete (Delete torrent (and files if possible), Log, Discord Notification)
-- HandleOrphaned (handle files/folders that are not used by any torrent, no matter if they are also in the media folder)
-  - All features from above
-  - Supported actions:
-      - test (Log, Discord Notification)
-      - delete (Delete files/folders, Log, Discord Notification)
-
 # Prerequirements
-- Use hardlinks only! Symlink, copying files, etc. is not supported and could cause data loss!
+- Use hardlinks only! Symlink is not supported/tested and could cause data loss!
 
 # How to install
 
@@ -68,9 +54,9 @@ When torrent-cleaner communicates with qBittorrent to get paths of torrents, qBi
 | version (e.g. `v1.0.0`) | Stable release (e.g. for pinning or switching back) |
 
 ## Config
-The config will create itself on first start with recommended settings, but still needs to be configured for notifications and the torrent client
+The config will create itself on first start with recommended default settings, but still needs to be configured for notifications and the torrent client
 
-### !!! Don't paste the explanation comments in your config, json doesn't like that !!!
+### Don't paste the explanation comments in your config, json doesn't like that
 ```json
 {
   "notification": {
@@ -86,29 +72,33 @@ The config will create itself on first start with recommended settings, but stil
   },
   "jobs": {
     "handle_unlinked": {
-      "interval_hours": 12, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 13, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_seeding_days": 20,
       "min_strike_days": 3,
       "required_strikes": 3,
       "protection_tag": "protected-unlinked",
       "action": "test" // test, stop, delete
     },
-    "handle_not_working": {
-      "interval_hours": 3, // -1 to disable, 0 to directly start when running (e.g. for testing)
-      "min_strike_days": 5,
-      "required_strikes": 10,
-      "protection_tag": "protected-not_working",
+    "handle_unregistered": {
+      "interval_hours": 7, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "min_strike_days": 1,
+      "required_strikes": 2,
       "ignore_dht": true,
       "ignore_pex": true,
       "ignore_lsd": true,
+      "protection_tag": "protected-unregistered",
       "action": "test" // test, stop, delete
     },
     "handle_orphaned": {
-      "interval_hours": 13, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 11, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 3,
       "required_strikes": 3,
       "protect_external_hardlinks": true,
       "action": "test" // test, delete
+    },
+    "health_check_files": {
+      "interval_hours": 17, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "action": "test" // test
     }
   }
 }

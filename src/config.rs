@@ -76,7 +76,7 @@ impl HandleUnlinked {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct HandleNotWorking {
+pub struct HandleUnregistered {
     interval_hours: i32,
     min_strike_days: i32,
     required_strikes: i32,
@@ -87,7 +87,7 @@ pub struct HandleNotWorking {
     action: String,
 }
 
-impl HandleNotWorking {
+impl HandleUnregistered {
     pub fn interval_hours(&self) -> i32 {
         self.interval_hours
     }
@@ -142,21 +142,40 @@ impl HandleOrphaned {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct HealthCheckFiles {
+    interval_hours: i32,
+    action: String,
+}
+
+impl HealthCheckFiles {
+    pub fn interval_hours(&self) -> i32 {
+        self.interval_hours
+    }
+    pub fn action(&self) -> &str {
+        &self.action
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Jobs {
     handle_unlinked: HandleUnlinked,
-    handle_not_working: HandleNotWorking,
+    handle_unregistered: HandleUnregistered,
     handle_orphaned: HandleOrphaned,
+    health_check_files: HealthCheckFiles,
 }
 
 impl Jobs {
     pub fn handle_unlinked(&self) -> &HandleUnlinked {
         &self.handle_unlinked
     }
-    pub fn handle_not_working(&self) -> &HandleNotWorking {
-        &self.handle_not_working
+    pub fn handle_unregistered(&self) -> &HandleUnregistered {
+        &self.handle_unregistered
     }
     pub fn handle_orphaned(&self) -> &HandleOrphaned {
         &self.handle_orphaned
+    }
+    pub fn health_check_files(&self) -> &HealthCheckFiles {
+        &self.health_check_files
     }
 }
 
@@ -183,28 +202,32 @@ impl Config {
             },
             jobs: Jobs {
                 handle_unlinked: HandleUnlinked {
-                    interval_hours: 12,
+                    interval_hours: 13,
                     min_seeding_days: 20,
                     min_strike_days: 3,
                     required_strikes: 3,
                     protection_tag: String::from("protected-unlinked"),
                     action: String::from("test"),
                 },
-                handle_not_working: HandleNotWorking {
-                    interval_hours: 3,
-                    min_strike_days: 5,
-                    required_strikes: 10,
-                    protection_tag: String::from("protected-not_working"),
+                handle_unregistered: HandleUnregistered {
+                    interval_hours: 7,
+                    min_strike_days: 1,
+                    required_strikes: 2,
                     ignore_dht: true,
                     ignore_pex: true,
                     ignore_lsd: true,
+                    protection_tag: String::from("protected-unregistered"),
                     action: String::from("test"),
                 },
                 handle_orphaned: HandleOrphaned {
-                    interval_hours: 13,
+                    interval_hours: 11,
                     min_strike_days: 3,
                     required_strikes: 3,
                     protect_external_hardlinks: true,
+                    action: String::from("test"),
+                },
+                health_check_files: HealthCheckFiles {
+                    interval_hours: 17,
                     action: String::from("test"),
                 },
             },

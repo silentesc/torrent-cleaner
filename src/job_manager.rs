@@ -9,10 +9,10 @@ use tokio::{sync::Mutex, time::sleep};
 use crate::{
     config::Config,
     error, info,
-    jobs::{handle_not_working::handle_not_working::HandleNotWorking, handle_orphaned::handle_orphaned::HandleOrphaned, handle_unlinked::handle_unlinked::HandleUnlinked, utils::discord_webhook_utils::DiscordWebhookUtils},
+    jobs::{handle_orphaned::runner::HandleOrphaned, handle_unlinked::runner::HandleUnlinked, handle_unregistered::runner::HandleUnregistered, health_check_files::runner::HealthCheckFiles},
     logger::enums::category::Category,
     torrent_clients::torrent_manager::TorrentManager,
-    utils::{date_utils::DateUtils, db_manager::Session},
+    utils::{date_utils::DateUtils, db_manager::Session, discord_webhook_utils::DiscordWebhookUtils},
     warn,
 };
 
@@ -35,8 +35,9 @@ impl JobManager {
 
     pub fn setup(&self) {
         let handle_unlinked = Arc::new(HandleUnlinked::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
-        let handle_not_working = Arc::new(HandleNotWorking::new(self.torrent_manager.clone(), self.config.clone()));
+        let handle_unregistered = Arc::new(HandleUnregistered::new(self.torrent_manager.clone(), self.config.clone()));
         let handle_orphaned = Arc::new(HandleOrphaned::new(self.torrent_manager.clone(), self.config.clone(), self.torrents_path.clone()));
+        let health_check_files = Arc::new(HealthCheckFiles::new(self.torrent_manager.clone(), self.config.clone()));
 
         let discord_webhook_url = Some(self.config.notification().discord_webhook_url()).filter(|s| !s.is_empty()).and_then(|url_str| Url::parse(url_str).ok());
 
@@ -51,13 +52,13 @@ impl JobManager {
         );
 
         self.spawn_job(
-            String::from("handle_not_working"),
-            self.config.jobs().handle_not_working().interval_hours(),
-            Config::default().jobs().handle_not_working().interval_hours(),
+            String::from("handle_unregistered"),
+            self.config.jobs().handle_unregistered().interval_hours(),
+            Config::default().jobs().handle_unregistered().interval_hours(),
             *self.config.notification().on_job_error(),
             discord_webhook_url.clone(),
-            handle_not_working.clone(),
-            |handler: Arc<HandleNotWorking>| async move { handler.run().await },
+            handle_unregistered.clone(),
+            |handler: Arc<HandleUnregistered>| async move { handler.run().await },
         );
 
         self.spawn_job(
@@ -68,6 +69,16 @@ impl JobManager {
             discord_webhook_url.clone(),
             handle_orphaned.clone(),
             |handler: Arc<HandleOrphaned>| async move { handler.run().await },
+        );
+
+        self.spawn_job(
+            String::from("health_check_files"),
+            self.config.jobs().health_check_files().interval_hours(),
+            Config::default().jobs().health_check_files().interval_hours(),
+            *self.config.notification().on_job_error(),
+            discord_webhook_url.clone(),
+            health_check_files.clone(),
+            |handler: Arc<HealthCheckFiles>| async move { handler.run().await },
         );
     }
 
@@ -91,7 +102,7 @@ impl JobManager {
                 if interval_hours == 0 {
                     interval_hours = default_interval_hours;
                 } else {
-                    let last_run = JobManager::get_last_run(job_name.as_str()).unwrap_or(None).unwrap_or(NaiveDateTime::default());
+                    let last_run = JobManager::get_last_run(job_name.as_str()).unwrap_or(None).unwrap_or_default();
                     let sleep_minutes = JobManager::get_startup_sleep_minutes(job_name.as_str(), interval_hours as i64);
 
                     info!(
@@ -121,16 +132,16 @@ impl JobManager {
                     info!(Category::JobManager, "Starting {}...", job_name);
 
                     // Set last job run, then run job and save result
-                    let result: Result<(), anyhow::Error> = (async || {
+                    let result: Result<(), anyhow::Error> = async {
                         JobManager::set_last_run(job_name.as_str())?;
                         job_fn(handler.clone()).await?;
                         Ok(())
-                    })()
+                    }
                     .await;
 
                     // Check result for error and log & send discord message
                     if let Err(e) = result {
-                        error!(Category::JobManager, "Failed to run handle_orphaned: {:#}", e);
+                        error!(Category::JobManager, "Failed to run {}: {:#}", job_name, e);
                         // Notify on discord
                         if notify_on_job_error {
                             let mut discord_webhook_utils = DiscordWebhookUtils::new(discord_webhook_url.clone());
@@ -173,19 +184,13 @@ impl JobManager {
                     // If the last job run is bigger than interval_hours then it's long ago and should instantly run
                     // Else the job would wait longer than it has to, so return the interval minus the time since the last run
                     let time_delta = DateUtils::get_current_local_naive_datetime() - last_run_naive_datetime;
-                    if time_delta > TimeDelta::hours(interval_hours) {
-                        return 0;
-                    } else {
-                        return interval_hours * 60 - time_delta.num_minutes();
-                    }
+                    if time_delta > TimeDelta::hours(interval_hours) { 0 } else { interval_hours * 60 - time_delta.num_minutes() }
                 }
-                None => {
-                    return interval_hours * 60;
-                }
+                None => interval_hours * 60,
             },
             Err(e) => {
                 error!(Category::JobManager, "Error while getting last job run for {}: {:#}", job_name, e);
-                return interval_hours * 60;
+                interval_hours * 60
             }
         }
     }

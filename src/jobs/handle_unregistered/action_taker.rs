@@ -24,27 +24,27 @@ impl ActionTaker {
                 break;
             }
         }
-        let action_type = ActionType::from_str(config.jobs().handle_not_working().action())?;
+        let action_type = ActionType::from_str(config.jobs().handle_unregistered().action())?;
         match action_type {
             ActionType::Test => {
-                info!(Category::HandleNotWorking, "Action: Test");
+                info!(Category::HandleUnregistered, "Action: Test");
                 if is_any_not_meeting_criteria {
-                    debug!(Category::HandleNotWorking, "  -> At least 1 other torrent depends this torrents files");
+                    debug!(Category::HandleUnregistered, "  -> At least 1 other torrent depends this torrents files");
                 }
             }
             ActionType::Stop => {
-                info!(Category::HandleNotWorking, "Action: Stopping torrent");
+                info!(Category::HandleUnregistered, "Action: Stopping torrent");
                 if is_any_not_meeting_criteria {
-                    debug!(Category::HandleNotWorking, "  -> At least 1 other torrent depends this torrents files");
+                    debug!(Category::HandleUnregistered, "  -> At least 1 other torrent depends this torrents files");
                 }
                 torrent_manager.stop_torrent(torrent.hash()).await.context("Failed to stop torrent")?;
             }
             ActionType::Delete => {
                 if is_any_not_meeting_criteria {
-                    info!(Category::HandleNotWorking, "Action: Deleting torrent but keeping files (at least 1 other torrent depends on them)");
+                    info!(Category::HandleUnregistered, "Action: Deleting torrent but keeping files (at least 1 other torrent depends on them)");
                     torrent_manager.delete_torrent(torrent.hash(), false).await.context("Failed to delete torrent")?;
                 } else {
-                    info!(Category::HandleNotWorking, "Action: Deleting torrent + files");
+                    info!(Category::HandleUnregistered, "Action: Deleting torrent + files");
                     torrent_manager.delete_torrent(torrent.hash(), true).await.context("Failed to delete torrent")?;
                 }
             }
