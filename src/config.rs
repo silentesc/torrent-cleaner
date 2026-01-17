@@ -202,7 +202,7 @@ impl Config {
             },
             jobs: Jobs {
                 handle_unlinked: HandleUnlinked {
-                    interval_hours: 12,
+                    interval_hours: 13,
                     min_seeding_days: 20,
                     min_strike_days: 3,
                     required_strikes: 3,
@@ -210,7 +210,7 @@ impl Config {
                     action: String::from("test"),
                 },
                 handle_unregistered: HandleUnregistered {
-                    interval_hours: 3,
+                    interval_hours: 7,
                     min_strike_days: 1,
                     required_strikes: 2,
                     ignore_dht: true,
@@ -220,14 +220,14 @@ impl Config {
                     action: String::from("test"),
                 },
                 handle_orphaned: HandleOrphaned {
-                    interval_hours: 13,
+                    interval_hours: 11,
                     min_strike_days: 3,
                     required_strikes: 3,
                     protect_external_hardlinks: true,
                     action: String::from("test"),
                 },
                 health_check_files: HealthCheckFiles {
-                    interval_hours: 24,
+                    interval_hours: 17,
                     action: String::from("test"),
                 },
             },

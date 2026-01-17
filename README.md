@@ -54,9 +54,9 @@ When torrent-cleaner communicates with qBittorrent to get paths of torrents, qBi
 | version (e.g. `v1.0.0`) | Stable release (e.g. for pinning or switching back) |
 
 ## Config
-The config will create itself on first start with recommended settings, but still needs to be configured for notifications and the torrent client
+The config will create itself on first start with recommended default settings, but still needs to be configured for notifications and the torrent client
 
-### !!! Don't paste the explanation comments in your config, json doesn't like that !!!
+### Don't paste the explanation comments in your config, json doesn't like that
 ```json
 {
   "notification": {
@@ -72,7 +72,7 @@ The config will create itself on first start with recommended settings, but stil
   },
   "jobs": {
     "handle_unlinked": {
-      "interval_hours": 12, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 13, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_seeding_days": 20,
       "min_strike_days": 3,
       "required_strikes": 3,
@@ -80,7 +80,7 @@ The config will create itself on first start with recommended settings, but stil
       "action": "test" // test, stop, delete
     },
     "handle_unregistered": {
-      "interval_hours": 3, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 7, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 1,
       "required_strikes": 2,
       "ignore_dht": true,
@@ -90,14 +90,14 @@ The config will create itself on first start with recommended settings, but stil
       "action": "test" // test, stop, delete
     },
     "handle_orphaned": {
-      "interval_hours": 13, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 11, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "min_strike_days": 3,
       "required_strikes": 3,
       "protect_external_hardlinks": true,
       "action": "test" // test, delete
     },
     "health_check_files": {
-      "interval_hours": 24, // -1 to disable, 0 to directly start when running (e.g. for testing)
+      "interval_hours": 17, // -1 to disable, 0 to directly start when running (e.g. for testing)
       "action": "test" // test
     }
   }
