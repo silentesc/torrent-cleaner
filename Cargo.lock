@@ -1570,7 +1570,7 @@ dependencies = [
 
 [[package]]
 name = "torrent-cleaner"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "chrono",
