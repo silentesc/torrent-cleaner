@@ -6,6 +6,7 @@ pub enum TrackerStatus {
     Working,      // 2
     Updating,     // 3
     NotWorking,   // 4
+    Error,        // 5
 }
 
 impl fmt::Display for TrackerStatus {
@@ -16,6 +17,7 @@ impl fmt::Display for TrackerStatus {
             TrackerStatus::Working => String::from("Working"),
             TrackerStatus::Updating => String::from("Updating"),
             TrackerStatus::NotWorking => String::from("Not Working"),
+            TrackerStatus::Error => String::from("Error"),
         };
         write!(f, "{}", status_str)
     }
@@ -29,6 +31,7 @@ impl TrackerStatus {
             2 => Ok(TrackerStatus::Working),
             3 => Ok(TrackerStatus::Updating),
             4 => Ok(TrackerStatus::NotWorking),
+            5 => Ok(TrackerStatus::Error),
             _ => Err(format!("Invalid Tracker Status Number: {}", num)),
         }
     }
@@ -40,6 +43,7 @@ impl TrackerStatus {
             TrackerStatus::Working => 2,
             TrackerStatus::Updating => 3,
             TrackerStatus::NotWorking => 4,
+            TrackerStatus::Error => 5,
         }
     }
 }
