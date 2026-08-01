@@ -2,10 +2,11 @@ use serde::Deserialize;
 
 use crate::torrent_clients::enums::tracker_status::TrackerStatus;
 
-static UNREGISTERED_MESSAGES: [&str; 33] = [
+static UNREGISTERED_MESSAGES: [&str; 37] = [
     "complete season uploaded",
     "dead",
     "dupe",
+    "grab internal",
     "i'm sorry dave, i can't do that",
     "infohash not found",
     "internal available",
@@ -17,6 +18,7 @@ static UNREGISTERED_MESSAGES: [&str; 33] = [
     "problem with description",
     "problem with file",
     "problem with pack",
+    "repack available",
     "retitled",
     "season pack",
     "specifically banned",
@@ -24,6 +26,7 @@ static UNREGISTERED_MESSAGES: [&str; 33] = [
     "torrent existiert nicht",
     "torrent has been deleted",
     "torrent has been nuked",
+    "torrent has been rejected",
     "torrent introuvable",
     "torrent is not authorized for use on this tracker",
     "torrent is not found",
@@ -36,6 +39,7 @@ static UNREGISTERED_MESSAGES: [&str; 33] = [
     "não registrado",
     "upgraded",
     "uploaded",
+    "nem található",
 ];
 
 #[derive(Deserialize)]
