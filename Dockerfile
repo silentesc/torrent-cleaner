@@ -1,7 +1,7 @@
 ###########
 # Builder #
 ###########
-FROM rust:1.94-alpine3.23 AS builder
+FROM rust:1.97.1-alpine3.24 AS builder
 
 RUN apk add --no-cache build-base musl-dev pkgconfig openssl-dev sqlite-dev ca-certificates
 
@@ -15,7 +15,7 @@ RUN cargo build --release --locked
 ##########
 # Runner #
 ##########
-FROM alpine:3.23
+FROM alpine:3.24.1
 
 RUN apk add --no-cache ca-certificates openssl sqlite-libs libgcc tzdata
 
